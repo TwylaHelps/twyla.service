@@ -1,3 +1,11 @@
 # twyla.service
 
-COmmon code for (micro)services
+Common code for (micro)services
+
+## Todos
+
+** TODO Emit events and tasks
+
+** TODO Message class with pydantic
+
+** TODO Running and managing async service
