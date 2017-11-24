@@ -12,6 +12,7 @@ aioamqp = "*"
 
 [dev-packages]
 
+pytest = "*"
 
 
 [requires]
