@@ -8,11 +8,17 @@ name = "pypi"
 [packages]
 
 aioamqp = "*"
+"e1839a8" = {path = ".", editable = true}
+pydantic = "*"
 
 
 [dev-packages]
 
 pytest = "*"
+isort = "*"
+pylint = "*"
+"flake8" = "*"
+pytest-cov = "*"
 
 
 [requires]
