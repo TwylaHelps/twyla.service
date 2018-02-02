@@ -1,22 +1,33 @@
 from datetime import datetime
-from uuid import UUID
+from uuid import UUID, uuid4
 
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, ValidationError
+
+import twyla.service.jsontool as jsontool
 
 
 class Event:
-    def __init__(self, channel, body, envelope):
+    def __init__(self, channel, body, envelope, name):
         self.channel = channel
         self.body = body
         self.envelope = envelope
+        self.name = name
 
 
-    def payload(self):
+    async def payload(self):
         """
         The payload method is where the deserialization and validation of the
-        event body happens. It returns a Message object.
+        event body happens. It returns an EventPayload object. The schema for
+        deserialization and validation is loaded from a central schema service.
         """
-        return self.body
+
+        try:
+            payload = EventPayload.parse_raw(self.body)
+        except ValidationError:
+            await self.drop()
+            raise
+
+        return payload
 
 
     async def ack(self):
@@ -39,21 +50,25 @@ class Event:
                 requeue=False)
 
 
+class Meta(BaseModel):
+    version: int = 1
+    timestamp: datetime = datetime.now()
+    session_id: UUID = uuid4()
+
+
 class Content(BaseModel):
     pass
 
 
-class Meta(BaseModel):
-    version: int = None
-    timestamp: datetime = None
-    session_id: UUID = None
+class EventPayload(BaseModel):
+    message_type: str
+    tenant: str
+    bot_slug: str
+    content: Content = Content()
+    channel: str
+    channel_user_id: str
+    meta: Meta = Meta()
 
 
-class Message(BaseModel):
-    message_type: str = None
-    tenant: str = None
-    bot_slug: str = None
-    content: Content = None
-    channel: str = None
-    channel_user_id: str = None
-    meta: Meta = None
+    def to_json(self):
+        return jsontool.dumps(self.dict())

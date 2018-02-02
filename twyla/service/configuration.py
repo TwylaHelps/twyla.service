@@ -12,5 +12,5 @@ def from_env(prefix):
 
     for key, value in os.environ.items():
         if key.startswith(prefix):
-            from_env[key.lstrip(prefix).lower()] = value
+            from_env[key[len(prefix):].lower()] = value
     return from_env
