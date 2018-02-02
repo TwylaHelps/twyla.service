@@ -42,10 +42,10 @@
         },
         "pydantic": {
             "hashes": [
-                "sha256:b952a5f569c228e09e1036d365b751a759f25898a2b012dc9e31dca0de411cf6",
-                "sha256:eb630485056d168ea779b36d07c2f6aa0399f0c99f93df15eb8d2d2172bcdc77"
+                "sha256:121758da9bf6f8ee2d18fc5d77677def649a0609c78d272b8124a97a84ea3c61",
+                "sha256:6bda09adb150796c942940eabc81d81504dc84778fc4b22fe47248f6461d6874"
             ],
-            "version": "==0.6.3"
+            "version": "==0.6.4"
         }
     },
     "develop": {
@@ -117,10 +117,10 @@
         },
         "isort": {
             "hashes": [
-                "sha256:cd5d3fc2c16006b567a17193edf4ed9830d9454cbeb5a42ac80b36ea00c23db4",
-                "sha256:79f46172d3a4e2e53e7016e663cc7a8b538bec525c36675fcfd2767df30b3983"
+                "sha256:385910ab5c46e364f496672634076ac612eeffd60f1007ebb050701c722ec870",
+                "sha256:beff82862fc587bef031c8b60485e41e1362d1f1cf1904be2aefb9f0027884c7"
             ],
-            "version": "==4.2.15"
+            "version": "==4.3.0"
         },
         "lazy-object-proxy": {
             "hashes": [
