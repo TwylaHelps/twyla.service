@@ -2,26 +2,45 @@ import os
 import unittest
 import unittest.mock as mock
 
+from aioamqp.protocol import OPEN
+
 import twyla.service.queues as queues
 import twyla.service.test.helpers as helpers
 
 
 class MockChannel:
     def __init__(self):
-        self.exchange_declare_recorder = None
-        pass
+        self.exchange_declare_calls = 0
+        self.queue_declare_calls = 0
+        self.queue_bind_calls = 0
+        self.close_calls = 0
+        self.is_open = True
 
-    async def exchange_declare(*args, **kwargs):
-        pass
+    async def exchange_declare(self, *args, **kwargs):
+        self.exchange_declare_calls += 1
+
+    async def queue_declare(self, *args, **kwargs):
+        self.queue_declare_calls += 1
+
+    async def queue_bind(self, *args, **kwargs):
+        self.queue_bind_calls += 1
+
+    async def close(self):
+        self.close_calls += 1
 
 
 class MockProtocol:
     def __init__(self):
         self.channel_calls = 0
+        self.close_calls = 0
+        self.state = OPEN
 
     async def channel(self):
         self.channel_calls += 1
         return MockChannel()
+
+    async def close(self):
+        self.close_calls += 1
 
 
 class MockAioamqp:
@@ -82,3 +101,13 @@ class QueueManagerTests(unittest.TestCase):
         # and channel properly
         assert isinstance(qm.protocol, MockProtocol)
         assert isinstance(qm.channel, MockChannel)
+
+        assert qm.protocol.channel_calls == 1
+        assert qm.channel.exchange_declare_calls == 1
+        assert qm.channel.queue_declare_calls == 0
+        assert qm.channel.queue_bind_calls == 0
+
+        helpers.aio_run(qm.stop())
+
+        assert qm.protocol.close_calls == 1
+        assert qm.channel.close_calls == 1

@@ -73,7 +73,7 @@ class QueueManager:
     # Binding queues is only relevant for listeners, publishing will be done to
     # the exchange.
     async def bind_queue(self, name):
-        queue_name = f'{config["prefix"]}-{name}'
+        queue_name = f'{self.config["prefix"]}-{name}'
         await self.channel.queue_declare(queue_name, durable=True)
         await self.channel.queue_bind(
             exchange_name=self.config['exchange'],
@@ -82,13 +82,10 @@ class QueueManager:
 
 
     async def stop(self):
-        try:
-            if self.channel is not None and self.channel.is_open:
-                await self.channel.close()
-            if self.protocol is not None and self.protocol.state is OPEN:
-                await self.protocol.close()
-        except:  # pylint: disable=bare-except
-            pass
+        if self.channel is not None and self.channel.is_open:
+            await self.channel.close()
+        if self.protocol is not None and self.protocol.state is OPEN:
+            await self.protocol.close()
 
 
     async def emit(self, event_name, payload):
@@ -114,8 +111,9 @@ class QueueManager:
                         name=event_name)
             await buff.put(msg)
 
+        queue_name = f'{self.config["prefix"]}-{event_name}'
         await self.channel.basic_consume(callback=callback,
-                                         queue_name=event_name)
+                                         queue_name=queue_name)
         while True:
             msg = await buff.get()
             buff.task_done()
