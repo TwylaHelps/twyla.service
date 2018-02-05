@@ -1,3 +1,6 @@
+[![Build Status](https://travis-ci.org/TwylaHelps/twyla.service.svg?branch=master)](https://travis-ci.org/TwylaHelps/twyla.service)
+[![codecov](https://codecov.io/gh/TwylaHelps/twyla.service/branch/master/graph/badge.svg)](https://codecov.io/gh/TwylaHelps/twyla.service)
+
 # Twyla Service
 
 The Twyla Service library provides primitives to build micro services that just
