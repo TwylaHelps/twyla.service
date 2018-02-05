@@ -27,4 +27,19 @@ async def listen(event_name):
 
 
 async def load(event_name):
+    """
+    Load the schema for the event and create a pydantic class.
+    """
     pass
+
+
+# qm is used to emit events to the exchange.
+package_qm = None
+
+
+async def emit(event_name, data={}):
+    global package_qm
+    if package_qm is None:
+        package_qm = queues.QueueManager()
+        await package_qm.connect()
+    await package_qm.emit(event_name, data)
