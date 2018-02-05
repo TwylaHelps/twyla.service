@@ -3,3 +3,5 @@ __pycache__
 *.egg-info
 .abl
 .mypy_cache
+.coverage
+.pytest_cache

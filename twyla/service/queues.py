@@ -42,6 +42,7 @@ class QueueManager:
         self.protocol = None
         self.channel = None
         self.loop = asyncio.get_event_loop()
+        self.bound = False
 
 
     async def connect(self):
@@ -79,6 +80,7 @@ class QueueManager:
             exchange_name=self.config['exchange'],
             queue_name=queue_name,
             routing_key=name)
+        self.bound = True
 
 
     async def stop(self):
@@ -89,6 +91,11 @@ class QueueManager:
 
 
     async def emit(self, event_name, payload):
+        # Declare the queue to make sure no messages get lost if no consumer
+        # has connected, yet.
+        if not self.bound:
+            await self.bind_queue(event_name)
+
         # Try to json.dumps if the payload is not a string or bytes
         if not isinstance(payload, str) and not isinstance(payload, bytes):
             payload = json.dumps(payload)
