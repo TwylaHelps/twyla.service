@@ -12,9 +12,11 @@ The RPC implementation is a wrapper around the Python `aiohttp` library.
 
 ### Using RPC requests
 
+    import asyncio
     import twyla.service.rpc as rpc
 
-    res = rpc.call('navitaire-api.get_booking', data={'pnr': 'A1324B'})
+    run = asyncio.get_event_loop().run_until_complete
+    res = run(rpc.call('navitaire-api.get_booking', data={'pnr': 'A1324B'}))
 
 
 ### Managing Changes

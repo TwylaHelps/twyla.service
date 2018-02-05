@@ -1,0 +1,19 @@
+language: python
+sudo: required
+
+python:
+  - "3.6"
+
+install:
+  - pip install pipenv
+  - pipenv install --dev
+
+script:
+  # let rabbit start up properly
+  - pytest --cov twyla.service --cov-report term-missing
+after_script:
+  - pip install codecov
+  - codecov
+
+services:
+  - rabbitmq

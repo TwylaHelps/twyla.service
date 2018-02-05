@@ -75,8 +75,10 @@ class TestQueues(unittest.TestCase):
         )
 
         assert len(received) == 2
+
         received_json = helpers.aio_run(received[0].payload()).to_json()
+        assert event_payload.to_json() == received_json
+
         received2 = helpers.aio_run(received[1].payload()).dict()
         del received2['meta']
-        assert event_payload.to_json() == received_json
         assert event_payload2 == received2
