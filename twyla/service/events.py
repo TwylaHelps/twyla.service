@@ -1,3 +1,5 @@
+from aioamqp.protocol import OPEN
+
 import twyla.service.queues as queues
 
 
@@ -39,7 +41,7 @@ package_qm = None
 
 async def emit(event_name, data={}):
     global package_qm
-    if package_qm is None:
+    if package_qm is None or package_qm.protocol.state != OPEN:
         package_qm = queues.QueueManager()
         await package_qm.connect()
     await package_qm.emit(event_name, data)
