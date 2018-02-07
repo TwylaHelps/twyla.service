@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import sys
 
 import aioamqp
 from aioamqp.protocol import OPEN
@@ -49,6 +50,25 @@ class QueueManager:
         await self.get_connection()
         self.channel = await self.protocol.channel()
         await self.declare()
+        return asyncio.ensure_future(self.cancel_on_disconnect())
+
+
+    async def cancel_on_disconnect(self):
+        await self.protocol.wait_closed()
+        await self.stop()
+        for task in asyncio.Task.all_tasks():
+            # Cancel all pending tasks (this should be only the current method
+            # and the event listener in most cases). Make sure to not cancel
+            # this method.
+            my_class_name = self.__class__.__name__
+            my_method_name = sys._getframe().f_code.co_name
+            my_name = f'{my_class_name}.{my_method_name}'
+            task_name = task._coro.__qualname__
+
+            if task_name == my_name:
+                continue
+            # otherwise cancel
+            task.cancel()
 
 
     async def get_connection(self):

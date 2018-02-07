@@ -1,8 +1,12 @@
 import asyncio
+from concurrent.futures._base import CancelledError
 import os
+import pytest
 import unittest
+import unittest.mock as mock
 
 import twyla.service.events as events
+import twyla.service.queues as queues
 import twyla.service.test.helpers as helpers
 from twyla.service.message import EventPayload
 
@@ -82,3 +86,33 @@ class TestQueues(unittest.TestCase):
         received2 = helpers.aio_run(received[1].payload()).dict()
         del received2['meta']
         assert event_payload2 == received2
+
+
+    @mock.patch('twyla.service.events.queues')
+    def test_cancel_on_disconnect(self, mock_queues):
+        # 'mock' queue manager with an instance that we control to test the
+        # disconnect callback more easily.
+        qm = queues.QueueManager()
+        mock_queues.QueueManager.return_value = qm
+
+        async def consumer(event_name):
+            async for e in events.listen(event_name):
+                await e.ack()
+
+        async def stopper():
+            while qm.protocol is None:
+                print('wainting!')
+                await asyncio.sleep(1)
+
+            await qm.protocol.close()
+
+        tasks = [
+            asyncio.ensure_future(consumer(self.event_name)),
+            asyncio.ensure_future(stopper()),
+        ]
+
+        loop = asyncio.get_event_loop()
+        with pytest.raises(CancelledError):
+            loop.run_until_complete(
+                asyncio.wait(tasks)
+            )

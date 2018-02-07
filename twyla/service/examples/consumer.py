@@ -1,3 +1,4 @@
+from concurrent.futures._base import CancelledError
 import asyncio
 import os
 
@@ -19,4 +20,7 @@ os.environ['TWYLA_RABBITMQ_VHOST'] = '/'
 os.environ['TWYLA_RABBITMQ_PREFIX'] = 'test-service'
 
 loop = asyncio.get_event_loop()
-loop.run_until_complete(listener('my-events'))
+try:
+    loop.run_until_complete(listener('my-events'))
+except CancelledError:
+    print('Lost connection. Done.')
