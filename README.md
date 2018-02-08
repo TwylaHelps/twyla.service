@@ -37,7 +37,7 @@ user data, start of a proxy session to a 3rd party bot or service) or request
 information from other services within the platform (e.g. query information
 about a booking).
 
-The letter is similar to RPC but decouples the request from awaiting and
+The latter is similar to RPC but decouples the request from awaiting and
 processing the response. The main disadvantage of this method of requesting
 information compared to RPC is the lack of a guaranteed response (RPC requests
 will always have a success, failure, or timeout response).
@@ -98,7 +98,7 @@ will get dropped by consumers that fail to validate them.
     helpers.aio_run(events.emit('test-event', payload))
 
 
-### Listing to Events
+### Listening to Events
 
 Events get provided by an async generator and all business logic can be fully
 controlled within the scope of the services.

@@ -98,4 +98,4 @@ class PayloadTest(unittest.TestCase):
             name='get_booking')
 
         with pytest.raises(pydantic.ValidationError):
-            _ = helpers.aio_run(event.payload())
+            helpers.aio_run(event.payload())
