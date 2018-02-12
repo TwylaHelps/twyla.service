@@ -101,7 +101,6 @@ class TestQueues(unittest.TestCase):
 
         async def stopper():
             while qm.protocol is None:
-                print('wainting!')
                 await asyncio.sleep(1)
 
             await qm.protocol.close()

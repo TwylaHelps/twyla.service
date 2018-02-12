@@ -65,9 +65,17 @@ class QueueManager:
             my_name = f'{my_class_name}.{my_method_name}'
             task_name = task._coro.__qualname__
 
+            # This checks if the task name is QueueManager.cancel_on_disconnect
+            # in a refactoring friendly way.
             if task_name == my_name:
                 continue
-            # otherwise cancel
+
+            # await self.protocol.wait_closed() will block this coroutine until
+            # the connection to rabbit closes for any reason. Then the rest of
+            # the function is executed cleaning the up all the things and
+            # raising the CancelledError to <loop>.run_until_complete() runs
+            # and by that passing handling of connection problems upwards in
+            # the call stack.
             task.cancel()
 
 
