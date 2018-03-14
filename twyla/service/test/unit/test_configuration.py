@@ -28,11 +28,6 @@ class ConfigurationTest(unittest.TestCase):
             conf = config.from_env(prefix=prefix)
             assert conf == expected
 
-        # cleanup
-        del os.environ['TWYLA_TEST_KEY']
-        del os.environ['TWYLA_TEST_KEY2']
-        del os.environ['TWYLA_TEST2_KEY2']
-
 
     @mock.patch('twyla.service.configuration.os.environ', new={
         'TWYLA_TEST_TEST': 'some-value',
@@ -48,9 +43,6 @@ class ConfigurationTest(unittest.TestCase):
         for prefix in prefixes:
             conf = config.from_env(prefix=prefix)
             assert conf == expected
-
-        del os.environ['TWYLA_TEST_TEST']
-        del os.environ['TWYLA_TEST2_TEST']
 
 
     @mock.patch('twyla.service.configuration.os.environ', new={})
