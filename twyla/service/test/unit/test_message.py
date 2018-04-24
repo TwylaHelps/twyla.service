@@ -12,12 +12,18 @@ class PayloadTest(unittest.TestCase):
     def setUp(self):
         self.test_body = '''
         {
-            "tenant": "test-tenant",
-            "message_type": "integration-request",
-            "bot_slug": "slow-slug",
-            "content": {},
-            "channel": "fbmessenger",
-            "channel_user_id": "some-user-id"
+            "event_name": "integration-request",
+            "content": {
+                "integration_type": "test-integration",
+                "request_type": "test-request",
+                "queue_response": "False"
+            },
+            "context": {
+                "tenant": "test-tenant",
+                "bot_slug": "slow-slug",
+                "channel": "fbmessenger",
+                "channel_user_id": "some-user-id"
+            }
         }
         '''
         self.invalid_test_body = '''
@@ -34,13 +40,12 @@ class PayloadTest(unittest.TestCase):
         payload = message.EventPayload.parse_raw(self.test_body)
 
         assert isinstance(payload.meta, message.Meta)
-        assert isinstance(payload.content, message.Content)
-        assert payload.tenant == 'test-tenant'
-        assert payload.message_type == 'integration-request'
-        assert payload.bot_slug == 'slow-slug'
-        assert payload.channel == 'fbmessenger'
-        assert payload.channel_user_id == 'some-user-id'
-
+        assert isinstance(payload.context, message.Context)
+        assert payload.event_name == 'integration-request'
+        assert payload.context.tenant == 'test-tenant'
+        assert payload.context.bot_slug == 'slow-slug'
+        assert payload.context.channel == 'fbmessenger'
+        assert payload.context.channel_user_id == 'some-user-id'
 
     def test_payload_serialization_roundtrip(self):
         payload = message.EventPayload.parse_raw(self.test_body)
@@ -50,11 +55,10 @@ class PayloadTest(unittest.TestCase):
 
         assert payload.meta.timestamp == new_payload.meta.timestamp
         assert payload.meta.session_id == new_payload.meta.session_id
-        assert payload.message_type == new_payload.message_type
-        assert payload.bot_slug == new_payload.bot_slug
-        assert payload.channel == new_payload.channel
-        assert payload.channel_user_id == new_payload.channel_user_id
-
+        assert payload.event_name == new_payload.event_name
+        assert payload.context.bot_slug == new_payload.context.bot_slug
+        assert payload.context.channel == new_payload.context.channel
+        assert payload.context.channel_user_id == new_payload.context.channel_user_id
 
     def test_event_class(self):
         mock_envelope = mock.MagicMock()
@@ -89,7 +93,6 @@ class PayloadTest(unittest.TestCase):
 
         assert event.channel.basic_reject.call_count == 2
 
-
     def test_event_class_bad_body(self):
         event = message.Event(
             channel=helpers.AsyncMock(),
@@ -97,5 +100,5 @@ class PayloadTest(unittest.TestCase):
             envelope=mock.MagicMock(),
             name='get_booking')
 
-        with pytest.raises(pydantic.ValidationError):
+        with pytest.raises(KeyError):
             helpers.aio_run(event.payload())

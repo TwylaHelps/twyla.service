@@ -8,7 +8,7 @@ import unittest.mock as mock
 import twyla.service.events as events
 import twyla.service.queues as queues
 import twyla.service.test.helpers as helpers
-from twyla.service.message import EventPayload
+from twyla.service.message import EventPayload, Context
 
 
 class TestQueues(unittest.TestCase):
@@ -23,7 +23,6 @@ class TestQueues(unittest.TestCase):
         os.environ['TWYLA_RABBITMQ_VHOST'] = '/'
         os.environ['TWYLA_RABBITMQ_PREFIX'] = 'test-service'
 
-
     def tearDown(self):
         del os.environ['TWYLA_RABBITMQ_HOST']
         del os.environ['TWYLA_RABBITMQ_PORT']
@@ -33,23 +32,36 @@ class TestQueues(unittest.TestCase):
         del os.environ['TWYLA_RABBITMQ_VHOST']
         del os.environ['TWYLA_RABBITMQ_PREFIX']
 
-
     def test_emit_listen_roundtrip(self):
         received = []
         event_payload = EventPayload(
-            message_type='integration',
-            tenant='test-tenant',
-            bot_slug='test-slug',
-            channel='test-channel',
-            channel_user_id='test-user-id'
+            event_name='integration-request',
+            content={
+                'integration_type': 'test-integration',
+                'request_type': 'test-request',
+                'queue_response': False
+            },
+            context=Context(**{
+                'tenant': 'test-tenant',
+                'bot_slug': 'test-slug',
+                'channel': 'test-channel',
+                'channel_user_id': 'test-user-id',
+            })
         )
+
         event_payload2 = {
-            'message_type': 'integration',
-            'tenant': 'test-tenant',
-            'bot_slug': 'test-slug',
-            'channel': 'test-channel',
-            'channel_user_id': 'test-user-id',
-            'content': {}
+            'event_name': 'integration-request',
+            'content': {
+                'integration_type': 'test-integration',
+                'request_type': 'test-request',
+                'queue_response': False
+            },
+            'context': {
+                'tenant': 'test-tenant',
+                'bot_slug': 'test-slug',
+                'channel': 'test-channel',
+                'channel_user_id': 'test-user-id'
+            }
         }
 
         async def consumer(event_name):
@@ -86,7 +98,6 @@ class TestQueues(unittest.TestCase):
         received2 = helpers.aio_run(received[1].payload()).dict()
         del received2['meta']
         assert event_payload2 == received2
-
 
     @mock.patch('twyla.service.events.queues')
     def test_cancel_on_disconnect(self, mock_queues):

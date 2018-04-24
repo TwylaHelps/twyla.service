@@ -6,6 +6,12 @@
 The Twyla Service library provides primitives to build micro services that just
 work within the Twyla platform.
 
+## Installation
+
+- Clone this repository to your machine.
+- `cd` to the directory and run `pipenv install --dev`.
+- Make sure that all tests pass: `pytest`.
+
 ## RPC (not yet implemented)
 
 Remote procedure calls are used for synchronous communication between services

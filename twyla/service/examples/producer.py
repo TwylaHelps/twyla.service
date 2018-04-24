@@ -10,11 +10,17 @@ import twyla.service.message as message
 async def ticker(interval):
     while True:
         event_payload = message.EventPayload(
-            message_type='integration',
-            tenant='test-tenant',
-            bot_slug='test-slug',
-            channel='test-channel',
-            channel_user_id='test-user-id',
+            event_name='control',
+            context=message.Context(
+                tenant='test-tenant',
+                bot_slug='test-slug',
+                channel='test-channel',
+                channel_user_id='test-user-id'
+            ),
+            content={
+                'condition': 'test-condition',
+                'extra_info': []
+            },
             meta=message.Meta(uuid=uuid4(), timestamp=datetime.now())
         )
         await asyncio.sleep(interval)
