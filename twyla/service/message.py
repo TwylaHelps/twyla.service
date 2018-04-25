@@ -26,6 +26,7 @@ class Event:
 
         try:
             payload = EventPayload.parse_raw(self.body)
+            payload = payload.validate()
         except ValidationError:
             await self.drop()
             raise
@@ -56,18 +57,43 @@ class Meta(BaseModel):
     session_id: UUID = uuid4()
 
 
+_CONTENT_SCHEMA_SET = None
+_CONTEXT_SCHEMA = None
+
+
+def set_schemata(content_schema_set, context_schema):
+    global _CONTENT_SCHEMA_SET, _CONTEXT_SCHEMA
+    assert isinstance(content_schema_set, dict)
+    _CONTENT_SCHEMA_SET = content_schema_set
+    _CONTEXT_SCHEMA = context_schema
+
+
+def get_schemata():
+    return _CONTENT_SCHEMA_SET, _CONTEXT_SCHEMA
+
+
 class EventPayload(BaseModel):
     event_name: str
     content: dict
     context: dict
     meta: Meta = Meta()
 
-    def validate(self, content_schema, context_schema):
-        content_schema = json.loads(content_schema)
-        assert self.event_name == content_schema['title']
-        
+    def validate(self):
+        content_schema_set, context_schema = get_schemata()
+
+        if any([content_schema_set is None, context_schema is None]):
+            raise Exception(
+                '''
+                Please set the schemata using twyla.service.message.set_schema:
+                set_schema(content_schema_set, context_schema)
+                '''
+            )
+
+        content_schema = json.loads(content_schema_set[self.event_name])
+        context_schema = json.loads(context_schema)
+
         jsonschema.validate(self.content, content_schema)
-        jsonschema.validate(self.context, json.loads(context_schema))
+        jsonschema.validate(self.context, context_schema)
         return self
 
     def to_json(self):

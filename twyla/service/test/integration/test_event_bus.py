@@ -8,13 +8,14 @@ import unittest.mock as mock
 import twyla.service.events as events
 import twyla.service.queues as queues
 import twyla.service.test.helpers as helpers
-from twyla.service.message import EventPayload
+import twyla.service.test.common as common
+from twyla.service.message import set_schemata, EventPayload
 
 
 class TestQueues(unittest.TestCase):
     def setUp(self):
         self.event_name = 'test-event'
-
+        set_schemata(*common.schemata_fixtures())
         os.environ['TWYLA_RABBITMQ_HOST'] = 'localhost'
         os.environ['TWYLA_RABBITMQ_PORT'] = '5672'
         os.environ['TWYLA_RABBITMQ_USER'] = 'guest'
@@ -35,32 +36,32 @@ class TestQueues(unittest.TestCase):
     def test_emit_listen_roundtrip(self):
         received = []
         event_payload = EventPayload(
-            event_name='integration-request',
+            event_name='an-event',
             content={
-                'integration_type': 'test-integration',
-                'request_type': 'test-request',
-                'queue_response': False
+                'name': 'test-name-content',
+                'text': 'test-text-content',
             },
             context={
-                'tenant': 'test-tenant',
-                'bot_slug': 'test-slug',
                 'channel': 'test-channel',
-                'channel_user_id': 'test-user-id',
+                'channel_user': {
+                    'name': 'test-name',
+                    'id': 24
+                }
             }
         )
 
         event_payload2 = {
-            'event_name': 'integration-request',
+            'event_name': 'an-event',
             'content': {
-                'integration_type': 'test-integration',
-                'request_type': 'test-request',
-                'queue_response': False
+                'name': 'test-name-content',
+                'text': 'test-text-content',
             },
             'context': {
-                'tenant': 'test-tenant',
-                'bot_slug': 'test-slug',
                 'channel': 'test-channel',
-                'channel_user_id': 'test-user-id'
+                'channel_user': {
+                    'name': 'test-name',
+                    'id': 24
+                }
             }
         }
 

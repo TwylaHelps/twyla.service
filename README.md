@@ -55,23 +55,68 @@ Events have to implement a specific contract that defines the structure and
 value types within the structure of the event. Pydantic is used to parse and
 validate events.
 
+For validation, a content schema set and context schema have to be defined using `twyla.service.message.get_schemata`. These schemata have to conform to [JSONSchema](json-schema.org).
+
+    import twyla.service.message as message
+
+    an_event_content_schema =
+    '''
+        {
+            "$schema": "http://json-schema.org/draft-06/schema#",
+            "title": "Content",
+            "description": "Some content",
+            "type": "object",
+            "properties": {
+                "emission": {
+                    "description": "Some emission",
+                    "type": "string"
+                }
+            }
+        }
+    '''
+
+    content_schema_set = {
+        'an-event': an_event_content_schema
+    }
+
+
+    context_schema =
+    '''
+        {
+            "$schema": "http://json-schema.org/draft-06/schema#",
+            "title": "Context",
+            "description": "Some context",
+            "type": "object",
+            "properties": {
+                "tenant": {
+                    "description": "Some tenant",
+                    "type": "string"
+                },
+                "channel-id": {
+                    "description": "Some channel ID",
+                    "type": "integer"
+                }
+            }
+        }
+    '''
+
+    message.set_schemata(content_schema_set, context_schema)
+
 The event can either implement one of the predefined contracts in this library
 or an automatically discovered contract that gets exposed by the services that
 listen to a particular event.
-
-> TODO: currently only the `Event` and `EventPayload` classes are implemented.
-> The content of the events is just a stub
 
     import twyla.service.events as events
     import twyla.service.message as message
     import twyla.service.test.helpers as helpers
 
     payload = message.EventPayload(
-        message_type='integration',
-        tenant='test-tenant',
-        bot_slug='test-slug',
-        channel='test-channel',
-        channel_user_id='test-user-id'
+        event_name='integration',
+        content={'emission': 'Hello, there'},
+        context={
+            'tenant': 'test-tenant',
+            'channel-id': 1
+        }
     )
 
     helpers.aio_run(events.emit('test-event', payload))

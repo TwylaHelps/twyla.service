@@ -6,45 +6,16 @@ import pytest
 
 import twyla.service.message as message
 import twyla.service.test.helpers as helpers
+import twyla.service.test.common as common
 
 
 class PayloadTest(unittest.TestCase):
     def setUp(self):
-        self.content_schema = '''
-        {
-            "$schema": "http://json-schema.org/draft-06/schema#",
-            "title": "Request",
-            "description": "A test request",
-            "type": "object",
-            "properties": {
-                "name": { "type": "string" },
-                "text": { "type": "string" }
-            }
-        }
-        '''
-
-        self.context_schema = '''
-        {
-            "$schema": "http://json-schema.org/draft-06/schema#",
-            "title": "ShopContext",
-            "description": "A test context",
-            "type": "object",
-            "properties": {
-                "channel": { "type": "string" },
-                "channel_user": { 
-                    "type": "object",
-                    "properties": {
-                        "name": { "type": "string" },
-                        "id": { "type": "number" }
-                    }
-                }
-            }
-        }
-        '''
+        self.content_schema_set, self.context_schema  = common.schemata_fixtures()
 
         self.test_body = '''
         {
-            "event_name": "Request",
+            "event_name": "an-event",
             "content": {
                 "name": "test-name",
                 "text": "test-text"
@@ -69,15 +40,45 @@ class PayloadTest(unittest.TestCase):
         }
         '''
 
-    def test_payload_parsing(self):
+        message._CONTENT_SCHEMA_SET = None
+        message._CONTEXT_SCHEMA = None
+
+    def test_schemata_are_empty_when_not_yet_set(self):
+        content_schema_set, context_schema = message.get_schemata()
+        assert content_schema_set is None
+        assert context_schema is None
+
+    def test_validation_with_no_schemata_set(self):
         payload = message.EventPayload.parse_raw(self.test_body)
-        payload = payload.validate(self.content_schema, self.context_schema)
+        with pytest.raises(Exception):
+            payload.validate()
+
+    def test_validation_with_only_content(self):
+        message.set_schemata(self.content_schema_set, None)
+        payload = message.EventPayload.parse_raw(self.test_body)
+        with pytest.raises(Exception):
+            payload.validate()
+
+    def test_set_schemata_with_incorrect_content_schemata_set(self):
+        with pytest.raises(AssertionError):
+            message.set_schemata(self.invalid_test_body, self.context_schema)
+    
+    def test_set_schemata_happy_path(self):
+        message.set_schemata(self.content_schema_set, self.context_schema)
+        content_schema_set, context_schema = message.get_schemata()
+        assert content_schema_set == self.content_schema_set
+        assert context_schema == self.context_schema
+
+    def test_payload_parsing(self):
+        message.set_schemata(self.content_schema_set, self.context_schema)
+        payload = message.EventPayload.parse_raw(self.test_body)
+        payload = payload.validate()
 
         assert isinstance(payload.meta, message.Meta)
         assert isinstance(payload.content, dict)
         assert isinstance(payload.context, dict)
 
-        assert payload.event_name == 'Request'
+        assert payload.event_name == 'an-event'
         assert payload.content['name'] == 'test-name'
         assert payload.content['text'] == 'test-text'
         assert payload.context['channel'] == 'test-channel'
@@ -85,8 +86,9 @@ class PayloadTest(unittest.TestCase):
         assert payload.context['channel_user']['id'] == 24
 
     def test_payload_serialization_roundtrip(self):
+        message.set_schemata(self.content_schema_set, self.context_schema)
         payload = message.EventPayload.parse_raw(self.test_body)
-        payload = payload.validate(self.content_schema, self.context_schema)
+        payload = payload.validate()
         raw_json = payload.to_json()
 
         new_payload = message.EventPayload.parse_raw(raw_json)
@@ -101,6 +103,7 @@ class PayloadTest(unittest.TestCase):
         assert payload.context['channel_user']['id'] == new_payload.context['channel_user']['id']
 
     def test_event_class(self):
+        message.set_schemata(self.content_schema_set, self.context_schema)
         mock_envelope = mock.MagicMock()
         mock_envelope.delivery_tag = 1
         mock_channel = helpers.AsyncMock()
