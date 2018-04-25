@@ -1,8 +1,11 @@
+import json
+
 from datetime import datetime
 from uuid import UUID, uuid4
 from typing import List
 
-from pydantic import BaseModel, ValidationError, validator
+import jsonschema
+from pydantic import BaseModel, ValidationError
 
 import twyla.service.jsontool as jsontool
 
@@ -53,45 +56,19 @@ class Meta(BaseModel):
     session_id: UUID = uuid4()
 
 
-class IntegrationRequestContent(BaseModel):
-    integration_type: str
-    request_type: str
-    queue_response: bool
-
-
-class ControlContent(BaseModel):
-    condition: str
-    extra_info: List[str]
-
-
-class Context(BaseModel):
-    tenant: str
-    bot_slug: str
-    channel: str
-    channel_user_id: str
-
-
 class EventPayload(BaseModel):
     event_name: str
     content: dict
-    context: Context
+    context: dict
     meta: Meta = Meta()
 
-    @validator('content', whole=True)
-    def check_content(cls, v, values, **kwargs):
-        '''
-        Use pydantic as the validator for content and simply
-        return the dict if valid.
-        It should raise an exception otherwise.
-        '''
-        try:
-            {
-                'control': ControlContent,
-                'integration-request': IntegrationRequestContent
-            }[values['event_name']](**v)
-            return v
-        except ValidationError as error:
-            raise Exception(error) from None
+    def validate(self, content_schema, context_schema):
+        content_schema = json.loads(content_schema)
+        assert self.event_name == content_schema['title']
+        
+        jsonschema.validate(self.content, content_schema)
+        jsonschema.validate(self.context, json.loads(context_schema))
+        return self
 
     def to_json(self):
         return jsontool.dumps(self.dict())

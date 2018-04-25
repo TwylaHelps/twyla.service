@@ -9,6 +9,7 @@ name = "pypi"
 
 aioamqp = "*"
 "e1839a8" = {path = ".", editable = true}
+jsonschema = "*"
 pydantic = "*"
 pyyaml = "*"
 

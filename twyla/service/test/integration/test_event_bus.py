@@ -8,7 +8,7 @@ import unittest.mock as mock
 import twyla.service.events as events
 import twyla.service.queues as queues
 import twyla.service.test.helpers as helpers
-from twyla.service.message import EventPayload, Context
+from twyla.service.message import EventPayload
 
 
 class TestQueues(unittest.TestCase):
@@ -41,12 +41,12 @@ class TestQueues(unittest.TestCase):
                 'request_type': 'test-request',
                 'queue_response': False
             },
-            context=Context(**{
+            context={
                 'tenant': 'test-tenant',
                 'bot_slug': 'test-slug',
                 'channel': 'test-channel',
                 'channel_user_id': 'test-user-id',
-            })
+            }
         )
 
         event_payload2 = {
