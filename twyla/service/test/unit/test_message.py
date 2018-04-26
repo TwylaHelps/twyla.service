@@ -43,21 +43,14 @@ class PayloadTest(unittest.TestCase):
         message._CONTENT_SCHEMA_SET = None
         message._CONTEXT_SCHEMA = None
 
-    def test_schemata_are_empty_when_not_yet_set(self):
-        content_schema_set, context_schema = message.get_schemata()
-        assert content_schema_set is None
-        assert context_schema is None
-
     def test_validation_with_no_schemata_set(self):
-        payload = message.EventPayload.parse_raw(self.test_body)
         with pytest.raises(Exception):
-            payload.validate()
+            payload = message.EventPayload.from_json(self.test_body)
 
     def test_validation_with_only_content(self):
         message.set_schemata(self.content_schema_set, None)
-        payload = message.EventPayload.parse_raw(self.test_body)
         with pytest.raises(Exception):
-            payload.validate()
+            payload = message.EventPayload.from_json(self.test_body)
 
     def test_set_schemata_with_incorrect_content_schemata_set(self):
         with pytest.raises(AssertionError):
@@ -69,10 +62,9 @@ class PayloadTest(unittest.TestCase):
         assert content_schema_set == self.content_schema_set
         assert context_schema == self.context_schema
 
-    def test_payload_parsing(self):
+    def test_payload_from_json(self):
         message.set_schemata(self.content_schema_set, self.context_schema)
-        payload = message.EventPayload.parse_raw(self.test_body)
-        payload = payload.validate()
+        payload = message.EventPayload.from_json(self.test_body)
 
         assert isinstance(payload.meta, message.Meta)
         assert isinstance(payload.content, dict)
@@ -87,11 +79,10 @@ class PayloadTest(unittest.TestCase):
 
     def test_payload_serialization_roundtrip(self):
         message.set_schemata(self.content_schema_set, self.context_schema)
-        payload = message.EventPayload.parse_raw(self.test_body)
-        payload = payload.validate()
+        payload = message.EventPayload.from_json(self.test_body)
         raw_json = payload.to_json()
 
-        new_payload = message.EventPayload.parse_raw(raw_json)
+        new_payload = message.EventPayload.from_json(raw_json)
 
         assert payload.meta.timestamp == new_payload.meta.timestamp
         assert payload.meta.session_id == new_payload.meta.session_id

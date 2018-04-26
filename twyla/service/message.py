@@ -25,8 +25,7 @@ class Event:
         """
 
         try:
-            payload = EventPayload.parse_raw(self.body)
-            payload = payload.validate()
+            payload = EventPayload.from_json(self.body)
         except ValidationError:
             await self.drop()
             raise
@@ -95,6 +94,12 @@ class EventPayload(BaseModel):
         jsonschema.validate(self.content, content_schema)
         jsonschema.validate(self.context, context_schema)
         return self
+
+    @classmethod
+    def from_json(cls, jayson):
+        payload = cls.parse_raw(jayson)
+        payload = payload.validate()
+        return payload
 
     def to_json(self):
         return jsontool.dumps(self.dict())
