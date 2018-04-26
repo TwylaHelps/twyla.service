@@ -6,6 +6,19 @@
 The Twyla Service library provides primitives to build micro services that just
 work within the Twyla platform.
 
+## Table of Contents
+
+- [Installation](#installation)
+- [RPC](#rpc-not-yet-implemented)
+  - [Using RPC Requests](#using-rpc-requests)
+  - [Managing Changes](#managing-changes)
+- [Event Bus](#event-bus)
+  - [Creating Events](#creating-events)
+  - [Listening to Events](#listening-to-events)
+  - [Managing Changes](#managing-changes-1)
+- [Service Contracts](#service-contracts)
+- [Logging/Tracing](#logging-tracing)
+
 ## Installation
 
 - Clone this repository to your machine.
@@ -19,7 +32,7 @@ and to communicate with the integrations. RPC is done via the HTTP protocol.
 
 The RPC implementation is a wrapper around the Python `aiohttp` library.
 
-### Using RPC requests
+### Using RPC Requests
 
     import asyncio
     import twyla.service.rpc as rpc
@@ -204,4 +217,4 @@ TBD
 
 ## Logging/Tracing
 
-TBD
+For logging utilities, check [twyla.logging](https://github.com/TwylaHelps/twyla.logging).
