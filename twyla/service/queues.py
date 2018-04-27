@@ -30,7 +30,15 @@ class QueueManager:
 
 
     async def connect(self):
-        await self.get_connection()
+        _, protocol = await aioamqp.connect(
+            self.config['amqp_host'],
+            self.config['amqp_port'],
+            self.config['amqp_user'],
+            self.config['amqp_pass'],
+            self.config['amqp_vhost'],
+            loop=self.loop
+        )
+        self.protocol = protocol
         self.channel = await self.protocol.channel()
         return asyncio.ensure_future(self.cancel_on_disconnect())
 
@@ -61,28 +69,13 @@ class QueueManager:
             task.cancel()
 
 
-    async def get_connection(self):
-        _, protocol = await aioamqp.connect(
-            self.config['amqp_host'],
-            self.config['amqp_port'],
-            self.config['amqp_user'],
-            self.config['amqp_pass'],
-            self.config['amqp_vhost'],
-            loop=self.loop
-        )
-
-        self.protocol = protocol
-
 
     # Binding queues is only relevant for listeners, publishing will be done to
     # the exchange.
     async def bind_queue(self, event_name):
         domain, event = split_event_name(event_name)
         queue_name = f'{domain}.{event}.{self.event_group}'
-        await self.channel.exchange_declare(
-            exchange_name=domain,
-            type_name='topic',
-            durable=True)
+        self.declare_exchange(domain)
         await self.channel.queue_declare(queue_name, durable=True)
         await self.channel.queue_bind(
             exchange_name=domain,
@@ -97,15 +90,16 @@ class QueueManager:
             await self.protocol.close()
 
 
-    async def emit(self, event_name, payload):
-        # Declare the queue to make sure no messages get lost if no consumer
-        # has connected, yet.
-        await self.bind_queue(event_name)
+    async def declare_exchange(self, exchange_name):
+        await self.channel.exchange_declare(exchange_name=exchange_name,
+                                            type_name='topic',
+                                            durable=True)
 
+
+    async def emit(self, event_name, payload):
         # Try to json.dumps if the payload is not a string or bytes
         if not isinstance(payload, str) and not isinstance(payload, bytes):
             payload = json.dumps(payload)
-
         await self.channel.publish(
             payload=payload,
             exchange_name=self.config['exchange'],

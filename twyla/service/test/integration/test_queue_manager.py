@@ -93,3 +93,14 @@ class TestQueues(unittest.TestCase):
         binding_to_exchange = [x for x in bindings if x['source'] == 'a-domain']
         assert len(binding_to_exchange) == 1
         assert binding_to_exchange[0]['routing_key'] == 'an-event'
+
+
+    def test_declare_exchange(self):
+        qm = queues.QueueManager('TWYLA_', 'the-group')
+        loop = asyncio.get_event_loop()
+        async def doit():
+            await qm.connect()
+            await qm.declare_exchange("emit-domain")
+        loop.run_until_complete(doit())
+        exchanges = self.rabbit.exchanges()
+        assert 'emit-domain' in [x['name'] for x in exchanges]
