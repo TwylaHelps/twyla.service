@@ -4,47 +4,14 @@ import os
 import pytest
 import unittest
 import unittest.mock as mock
-from urllib.parse import urljoin
 
-import requests
-from requests.auth import HTTPBasicAuth
-
-import twyla.service.events as events
 import twyla.service.queues as queues
+
+from twyla.service.test.integration.common import RabbitRest
 
 
 def noop(*args, **kwargs):
     pass
-
-class RabbitRest:
-
-    BASE = 'http://localhost:15672/api/'
-    RABBIT_AUTH = HTTPBasicAuth('guest', 'guest')
-
-    def queues(self):
-        return requests.get(urljoin(self.BASE, 'queues/%2F'), auth=self.RABBIT_AUTH).json()
-
-    def exchanges(self):
-        return requests.get(urljoin(self.BASE, 'exchanges/%2F'), auth=self.RABBIT_AUTH).json()
-
-    def delete_queue(self, queue_name):
-        url = urljoin(self.BASE, f'queues/%2f/{queue_name}')
-        requests.delete(url, auth=self.RABBIT_AUTH)
-
-    def delete_exchange(self, exchange_name):
-        url = urljoin(self.BASE, f'exchanges/%2f/{exchange_name}')
-        requests.delete(url, auth=self.RABBIT_AUTH)
-
-    def queue_bindings(self, queue_name):
-        return requests.get(urljoin(self.BASE, f'queues/%2F/{queue_name}/bindings'),
-                            auth=self.RABBIT_AUTH).json()
-
-
-    def get_messages(self, queue_name):
-        url = urljoin(self.BASE, f'queues/%2f/{queue_name}/get')
-        body = {'count': 10, "ackmode":"ack_requeue_true", 'encoding': 'auto'}
-        resp = requests.post(url, json=body, auth=self.RABBIT_AUTH)
-        return resp.json()
 
 
 class TestQueues(unittest.TestCase):
