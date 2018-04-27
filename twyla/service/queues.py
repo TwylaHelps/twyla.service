@@ -30,6 +30,8 @@ class QueueManager:
 
 
     async def connect(self):
+        if self.protocol is not None and self.channel is not None:
+            return
         _, protocol = await aioamqp.connect(
             self.config['amqp_host'],
             self.config['amqp_port'],
@@ -101,10 +103,12 @@ class QueueManager:
         # Try to json.dumps if the payload is not a string or bytes
         if not isinstance(payload, str) and not isinstance(payload, bytes):
             payload = json.dumps(payload)
-        await self.channel.publish(
+        domain, event_type = split_event_name(event_name)
+        retval = await self.channel.publish(
             payload=payload,
-            exchange_name=self.config['exchange'],
-            routing_key=event_name)
+            exchange_name=domain,
+            routing_key=event_type)
+
 
 
     async def listen(self, event_name, callback):
