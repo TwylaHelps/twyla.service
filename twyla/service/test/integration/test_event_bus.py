@@ -5,38 +5,65 @@ import pytest
 import unittest
 import unittest.mock as mock
 
-import twyla.service.events as events
+from twyla.service.events import EventBus
 import twyla.service.queues as queues
 import twyla.service.test.helpers as helpers
 import twyla.service.test.common as common
 from twyla.service.message import set_schemata, EventPayload
+from twyla.service.test.integration.common import RabbitRest
 
 
 class TestQueues(unittest.TestCase):
+
     def setUp(self):
-        self.event_name = 'test-event'
         set_schemata(*common.schemata_fixtures())
-        os.environ['TWYLA_RABBITMQ_HOST'] = 'localhost'
-        os.environ['TWYLA_RABBITMQ_PORT'] = '5672'
-        os.environ['TWYLA_RABBITMQ_USER'] = 'guest'
-        os.environ['TWYLA_RABBITMQ_PASS'] = 'guest'
-        os.environ['TWYLA_RABBITMQ_EXCHANGE'] = 'events_test'
-        os.environ['TWYLA_RABBITMQ_VHOST'] = '/'
-        os.environ['TWYLA_RABBITMQ_PREFIX'] = 'test-service'
+        self.patcher = mock.patch.dict(
+            os.environ,
+            {'TWYLA_AMQP_HOST': 'localhost',
+             'TWYLA_AMQP_PORT': '5672',
+             'TWYLA_AMQP_USER': 'guest',
+             'TWYLA_AMQP_PASS': 'guest',
+             'TWYLA_AMQP_VHOST': '/'})
+        self.patcher.start()
+        self.rabbit = RabbitRest()
+
 
     def tearDown(self):
-        del os.environ['TWYLA_RABBITMQ_HOST']
-        del os.environ['TWYLA_RABBITMQ_PORT']
-        del os.environ['TWYLA_RABBITMQ_USER']
-        del os.environ['TWYLA_RABBITMQ_PASS']
-        del os.environ['TWYLA_RABBITMQ_EXCHANGE']
-        del os.environ['TWYLA_RABBITMQ_VHOST']
-        del os.environ['TWYLA_RABBITMQ_PREFIX']
+        self.patcher.stop()
 
-    def test_emit_listen_roundtrip(self):
-        received = []
+
+    def test_emit(self):
+        self.rabbit.create_queue("a-domain.an-event.testing", "a-domain", "an-event")
+        event_bus = EventBus('TWYLA_', 'testing', ['a-domain.an-event'])
+        event = EventPayload(
+            event_name='a-domain.an-event',
+            content={
+                'name': 'test-name-content',
+                'text': 'test-text-content',
+            },
+            context={
+                'channel': 'test-channel',
+                'channel_user': {
+                    'name': 'test-name',
+                    'id': 24
+                }
+            }
+        )
+        async def doit():
+            await event_bus.emit(event)
+
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(doit())
+        messages = self.rabbit.get_messages('a-domain.an-event.testing')
+        assert len(messages) == 1
+        message = EventPayload.from_json(messages[0]['payload'])
+        assert message.event_name == 'a-domain.an-event'
+        assert message.content['name'] == 'test-name-content'
+
+
+    def test_listen(self):
         event_payload = EventPayload(
-            event_name='an-event',
+            event_name='to-be-listened',
             content={
                 'name': 'test-name-content',
                 'text': 'test-text-content',
@@ -50,72 +77,37 @@ class TestQueues(unittest.TestCase):
             }
         )
 
-        event_payload2 = {
-            'event_name': 'an-event',
-            'content': {
-                'name': 'test-name-content',
-                'text': 'test-text-content',
-            },
-            'context': {
-                'channel': 'test-channel',
-                'channel_user': {
-                    'name': 'test-name',
-                    'id': 24
-                }
-            }
-        }
+        event_bus = EventBus('TWYLA_', 'testing', ['a-domain.to-be-listened'])
+        received = []
+        async def consumer_callback(event_name):
+            received.append(e)
 
-        async def consumer(event_name):
-            nonlocal received
-            async for e in events.listen(event_name):
-                received.append(e)
-                await e.ack()
-                if len(received) == 2:
-                    return
-
-        async def producer(event_name):
-            nonlocal event_payload
-            nonlocal event_payload2
-            await events.emit(self.event_name,
-                              event_payload.to_json())
-            await events.emit(self.event_name,
-                              event_payload2)
-
-        tasks = [
-            asyncio.ensure_future(consumer(self.event_name)),
-            asyncio.ensure_future(producer(self.event_name)),
-        ]
+        async def doit():
+            await event_bus.listen('a-domain.to-be-listened', consumer_callback)
+            self.rabbit.publish_message('a-domain', 'to-be-listened', event_payload.to_json())
 
         loop = asyncio.get_event_loop()
-        loop.run_until_complete(
-            asyncio.wait(tasks)
-        )
+        loop.run_until_complete(doit())
+        assert len(received) == 1
 
-        assert len(received) == 2
 
-        received_json = helpers.aio_run(received[0].payload()).to_json()
-        assert event_payload.to_json() == received_json
-
-        received2 = helpers.aio_run(received[1].payload()).dict()
-        del received2['meta']
-        assert event_payload2 == received2
 
     @mock.patch('twyla.service.events.queues')
     def test_cancel_on_disconnect(self, mock_queues):
         # 'mock' queue manager with an instance that we control to test the
         # disconnect callback more easily.
-        qm = queues.QueueManager()
+        qm = queues.QueueManager('TWYLA_', 'the-group')
         mock_queues.QueueManager.return_value = qm
 
         async def consumer(event_name):
-            async for e in events.listen(event_name):
+            async for e in events.listen("a-domain.an-event"):
                 await e.ack()
 
         async def stopper():
             while qm.protocol is None:
                 await asyncio.sleep(1)
-
             await qm.protocol.close()
+
 
         tasks = [
             asyncio.ensure_future(consumer(self.event_name)),

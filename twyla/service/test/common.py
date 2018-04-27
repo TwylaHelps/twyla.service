@@ -13,7 +13,7 @@ _content_schema = json.dumps({
 })
 
 _content_schema_set = {
-    'an-event': _content_schema,
+    'a-domain.an-event': _content_schema,
     'another-event': 'another-event-content-schema'
 }
 

@@ -1,47 +1,22 @@
 from aioamqp.protocol import OPEN
 
-import twyla.service.queues as queues
+from twyla.service import queues
+
+class EventBus:
+
+    def __init__(self, config_prefix, group, emits):
+        self.config_prefix = config_prefix
+        self.group = group
+        self.queue_manager = queues.QueueManager(config_prefix, group)
+        self.emits = emits
 
 
-async def listen(event_name):
-    """
-    listen is a small package level wrapper around QueueManager.listen for ease
-    of use.
-
-    Usage:
-        import asyncio
-        import twyla.service.events as events
+    async def listen(self, event_name, callback):
+        await self.queue_manager.connect()
+        await self.queue_manager.listen(event_name, callback)
 
 
-        async def main():
-            async for msg in events.listen('domain.event_name'):
-                print(msg.body)
-                await msg.ack()
-
-
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(main())
-    """
-    qm = queues.QueueManager()
-    await qm.connect()
-    async for event in qm.listen(event_name):
-        yield event
-
-
-async def load(event_name):
-    """
-    Load the schema for the event and create a pydantic class.
-    """
-    pass
-
-
-# qm is used to emit events to the exchange.
-package_qm = None
-
-
-async def emit(event_name, data={}):
-    global package_qm
-    if package_qm is None or package_qm.protocol.state != OPEN:
-        package_qm = queues.QueueManager()
-        await package_qm.connect()
-    await package_qm.emit(event_name, data)
+    async def emit(self, event):
+        await self.queue_manager.connect()
+        data = event.to_json()
+        await self.queue_manager.emit(event.event_name, data)
