@@ -13,6 +13,9 @@ import twyla.service.events as events
 import twyla.service.queues as queues
 
 
+def noop(*args, **kwargs):
+    pass
+
 class RabbitRest:
 
     BASE = 'http://localhost:15672/api/'
@@ -47,7 +50,6 @@ class RabbitRest:
 class TestQueues(unittest.TestCase):
 
     def setUp(self):
-        self.event_name = 'test-event'
         self.patcher = mock.patch.dict(
             os.environ,
             {'TWYLA_AMQP_HOST': 'localhost',
@@ -76,7 +78,7 @@ class TestQueues(unittest.TestCase):
         qm = queues.QueueManager('TWYLA_', 'the-group')
         loop = asyncio.get_event_loop()
         with pytest.raises(AssertionError):
-            loop.run_until_complete(qm.listen('an-event'))
+            loop.run_until_complete(qm.listen('an-event', noop))
 
 
     def test_declare_queues_and_exchanges_for_listener(self):
@@ -84,7 +86,7 @@ class TestQueues(unittest.TestCase):
         loop = asyncio.get_event_loop()
         async def doit():
             await qm.connect()
-            await qm.listen('a-domain.an-event')
+            await qm.listen('a-domain.an-event', noop)
         loop.run_until_complete(doit())
         rabbit_queues = self.rabbit.queues()
         assert 'a-domain.an-event.the-group' in [x['name'] for x in rabbit_queues]
