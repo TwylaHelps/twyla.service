@@ -12,6 +12,12 @@ from twyla.service.message import Event
 # TODO: add actual logging
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
+def split_event_name(event_name: str):
+    assert "." in event_name, "Event names should be of format domain.event_name"
+    splat = event_name.split('.', 1)
+    return splat[0], splat[1]
+
+
 
 class QueueManager:
 
@@ -21,13 +27,11 @@ class QueueManager:
         self.protocol = None
         self.channel = None
         self.loop = asyncio.get_event_loop()
-        self.bound = False
 
 
     async def connect(self):
         await self.get_connection()
         self.channel = await self.protocol.channel()
-        await self.declare()
         return asyncio.ensure_future(self.cancel_on_disconnect())
 
 
@@ -59,34 +63,31 @@ class QueueManager:
 
     async def get_connection(self):
         _, protocol = await aioamqp.connect(
-            self.config['host'],
-            self.config['port'],
-            self.config['user'],
-            self.config['pass'],
-            self.config['vhost'],
+            self.config['amqp_host'],
+            self.config['amqp_port'],
+            self.config['amqp_user'],
+            self.config['amqp_pass'],
+            self.config['amqp_vhost'],
             loop=self.loop
         )
 
         self.protocol = protocol
 
 
-    async def declare(self):
-        await self.channel.exchange_declare(
-            exchange_name=self.config['exchange'],
-            type_name='topic',
-            durable=True)
-
-
     # Binding queues is only relevant for listeners, publishing will be done to
     # the exchange.
-    async def bind_queue(self, name):
-        queue_name = f'{self.config["prefix"]}-{name}'
+    async def bind_queue(self, event_name):
+        domain, event = split_event_name(event_name)
+        queue_name = f'{domain}.{event}.{self.event_group}'
+        await self.channel.exchange_declare(
+            exchange_name=domain,
+            type_name='topic',
+            durable=True)
         await self.channel.queue_declare(queue_name, durable=True)
         await self.channel.queue_bind(
-            exchange_name=self.config['exchange'],
+            exchange_name=domain,
             queue_name=queue_name,
-            routing_key=name)
-        self.bound = True
+            routing_key=event)
 
 
     async def stop(self):
@@ -99,8 +100,7 @@ class QueueManager:
     async def emit(self, event_name, payload):
         # Declare the queue to make sure no messages get lost if no consumer
         # has connected, yet.
-        if not self.bound:
-            await self.bind_queue(event_name)
+        await self.bind_queue(event_name)
 
         # Try to json.dumps if the payload is not a string or bytes
         if not isinstance(payload, str) and not isinstance(payload, bytes):
@@ -124,10 +124,6 @@ class QueueManager:
                         name=event_name)
             await buff.put(msg)
 
-        queue_name = f'{self.config["prefix"]}-{event_name}'
-        await self.channel.basic_consume(callback=callback,
-                                         queue_name=queue_name)
-        while True:
-            msg = await buff.get()
-            buff.task_done()
-            yield msg
+        # queue_name = f'{self.config["prefix"]}-{event_name}'
+        # await self.channel.basic_consume(callback=callback,
+        #                                  queue_name=queue_name)
