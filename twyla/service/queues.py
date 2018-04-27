@@ -75,12 +75,13 @@ class QueueManager:
     async def bind_queue(self, event_name):
         domain, event = split_event_name(event_name)
         queue_name = f'{domain}.{event}.{self.event_group}'
-        self.declare_exchange(domain)
+        await self.declare_exchange(domain)
         await self.channel.queue_declare(queue_name, durable=True)
         await self.channel.queue_bind(
             exchange_name=domain,
             queue_name=queue_name,
             routing_key=event)
+        return queue_name
 
 
     async def stop(self):
@@ -106,18 +107,7 @@ class QueueManager:
             routing_key=event_name)
 
 
-    async def listen(self, event_name):
-        buff = asyncio.Queue()
-        await self.bind_queue(event_name)
-
-        async def callback(channel, body, envelope, properties):
-            # TODO: make properly validated message
-            msg = Event(channel=channel,
-                        body=body,
-                        envelope=envelope,
-                        name=event_name)
-            await buff.put(msg)
-
-        # queue_name = f'{self.config["prefix"]}-{event_name}'
-        # await self.channel.basic_consume(callback=callback,
-        #                                  queue_name=queue_name)
+    async def listen(self, event_name, callback):
+        queue_name = await self.bind_queue(event_name)
+        await self.channel.basic_consume(callback=callback,
+                                         queue_name=queue_name)
