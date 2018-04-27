@@ -25,6 +25,21 @@ work within the Twyla platform.
 - `cd` to the directory and run `pipenv install --dev`.
 - Make sure that all tests pass: `pytest`.
 
+## Configuration
+
+The configuration values are read from environment variables whose names should
+have the same prefix. This prefix should be passed to the `EventBus` class on
+initialization. If the prefix is `EVENT_BUS`, for example, the following values
+should be set in the environment:
+
+```
+EVENT_BUS_AMQP_HOST
+EVENT_BUS_AMQP_PORT
+EVENT_BUS_AMQP_USER
+EVENT_BUS_AMQP_PASS
+EVENT_BUS_AMQP_VHOST
+```
+
 ## RPC (not yet implemented)
 
 Remote procedure calls are used for synchronous communication between services

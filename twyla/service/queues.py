@@ -13,33 +13,11 @@ from twyla.service.message import Event
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 
-def load_config():
-    """
-    load_config is used to get RabbitMQ configuration from the environment.
-
-    Required variables:
-    Name                    | Example
-    -------------------------------------
-    TWYLA_RABBITMQ_HOST     | localhost
-    TWYLA_RABBITMQ_PORT     | 5672
-    TWYLA_RABBITMQ_USER     | guest
-    TWYLA_RABBITMQ_PASS     | guest
-    TWYLA_RABBITMQ_EXCHANGE | events
-    TWYLA_RABBITMQ_VHOST    | /
-    TWYLA_RABBITMQ_PREFIX   | xpi
-
-    Every service should use a unique prefix; it will be used to prefix the
-    queue names for the different events and allow multiple services to listen
-    to the same events while multiple instances of the same service will be
-    listening to the same queue.
-    """
-
-    return config.from_env('TWYLA_RABBITMQ_')
-
-
 class QueueManager:
-    def __init__(self):
-        self.config = load_config()
+
+    def __init__(self, configuration_prefix, event_group):
+        self.config = config.from_env(configuration_prefix)
+        self.event_group = event_group
         self.protocol = None
         self.channel = None
         self.loop = asyncio.get_event_loop()
