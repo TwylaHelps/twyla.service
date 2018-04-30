@@ -46,8 +46,8 @@ class RabbitRest:
     def publish_message(self, exchange_name, routing_key, payload):
         url = urljoin(self.BASE, f'exchanges/%2f/{exchange_name}/publish')
         body = {"properties": {},
-                "routing_key": "my key",
-                "payload": "my body",
+                "routing_key": routing_key,
+                "payload": payload,
                 "payload_encoding": "string"}
         resp = requests.post(url, json=body, auth=self.RABBIT_AUTH)
         return resp.json()
