@@ -1,4 +1,5 @@
 import asyncio
+import json
 from concurrent.futures._base import CancelledError
 import os
 import pytest
@@ -79,8 +80,9 @@ class TestQueues(unittest.TestCase):
 
         event_bus = EventBus('TWYLA_', 'testing', ['a-domain.to-be-listened'])
         received = []
-        async def consumer_callback(event_name):
-            received.append(e)
+        async def consumer_callback(channel, body, envelope, properties):
+            received.append(body)
+            await channel.basic_client_ack(delivery_tag=envelope.delivery_tag)
 
         async def doit():
             await event_bus.listen('a-domain.to-be-listened', consumer_callback)
@@ -88,7 +90,9 @@ class TestQueues(unittest.TestCase):
 
         loop = asyncio.get_event_loop()
         loop.run_until_complete(doit())
-        assert len(received) == 1
+        payload = json.loads(received[0])
+        assert payload['content']['name'] == 'test-name-content'
+
 
 
 
