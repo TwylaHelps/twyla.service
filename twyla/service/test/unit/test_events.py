@@ -1,27 +1,34 @@
 import unittest
 import unittest.mock as mock
 
-import twyla.service.test.helpers as helpers
-import twyla.service.events as events
+from twyla.service.test import helpers
+from twyla.service import events
+
+class QueueMock:
+    def __init__(self):
+        self.listeners = []
+        self.connected = False
+
+    async def connect(self):
+        self.connected = True
+
+    async def listen(self, event_name, callback):
+        self.listeners.append((event_name, callback))
 
 
-class EventsModuleTest(unittest.TestCase):
+class EventsTests(unittest.TestCase):
+
     @mock.patch('twyla.service.events.queues')
     def test_listen(self, mock_queues):
-        async def async_gen_mock(val):
-            yield val
+        qm = QueueMock()
+        mock_queues.QueueManager.return_value = qm
 
-        qm = mock_queues.QueueManager.return_value
-        qm.connect = helpers.AsyncMock()
-        qm.listen = async_gen_mock
+        event_bus = events.EventBus('TWYLA_', 'testing', ['a-domain.an-event'])
 
-        async def run_loop():
-            async for event in events.listen('some-event'):
-                assert event == 'some-event'
-        helpers.aio_run(run_loop())
+        async def callback(*args, **kwargs):
+            pass
 
-        qm.connect.assert_called_once_with(qm)
-
-
-    def test_load(self):
-        helpers.aio_run(events.load('some-event'))
+        helpers.aio_run(event_bus.listen('a-domain.an-event', callback))
+        assert qm.connected
+        assert len(qm.listeners) == 1
+        assert qm.listeners[0] == ('a-domain.an-event', callback)
