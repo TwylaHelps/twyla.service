@@ -17,31 +17,28 @@ class Event:
         self.envelope = envelope
         self.name = name
 
-    async def payload(self):
+    def payload(self):
         """
         The payload method is where the deserialization and validation of the
         event body happens. It returns an EventPayload object. The schema for
         deserialization and validation is loaded from a central schema service.
         """
-
-        try:
-            payload = EventPayload.from_json(self.body)
-        except ValidationError:
-            await self.drop()
-            raise
-
+        payload = EventPayload.from_json(self.body)
         return payload
+
 
     async def ack(self):
         if self.channel is not None:
             await self.channel.basic_client_ack(
                 delivery_tag=self.envelope.delivery_tag)
 
+
     async def reject(self):
         if self.channel is not None:
             await self.channel.basic_reject(
                 delivery_tag=self.envelope.delivery_tag,
                 requeue=True)
+
 
     async def drop(self):
         if self.channel is not None:
