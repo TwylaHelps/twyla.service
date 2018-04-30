@@ -6,7 +6,8 @@ from types import SimpleNamespace as Bunch
 import pydantic
 import pytest
 
-import twyla.service.message as message
+from twyla.service import event as event_module
+from twyla.service.event import Event, EventPayload, Meta, set_schemata, get_schemata
 import twyla.service.test.helpers as helpers
 import twyla.service.test.common as common
 
@@ -50,43 +51,43 @@ class PayloadTest(unittest.TestCase):
 
     def setUp(self):
         self.content_schema_set, self.context_schema  = common.schemata_fixtures()
-        message._CONTENT_SCHEMA_SET = None
-        message._CONTEXT_SCHEMA = None
+        event_module._CONTENT_SCHEMA_SET = None
+        event_module._CONTEXT_SCHEMA = None
 
 
     def tearDown(self):
-        message._CONTENT_SCHEMA_SET = None
-        message._CONTEXT_SCHEMA = None
+        event_module._CONTENT_SCHEMA_SET = None
+        event_module._CONTEXT_SCHEMA = None
 
 
     def test_validation_with_no_schemata_set(self):
         with pytest.raises(Exception):
-            payload = message.EventPayload.from_json(EVENT_PAYLOAD)
+            payload = EventPayload.from_json(EVENT_PAYLOAD)
 
 
     def test_validation_with_only_content(self):
-        message.set_schemata(self.content_schema_set, None)
+        set_schemata(self.content_schema_set, None)
         with pytest.raises(Exception):
-            payload = message.EventPayload.from_json(EVENT_PAYLOAD)
+            payload = EventPayload.from_json(EVENT_PAYLOAD)
 
 
     def test_set_schemata_with_incorrect_content_schemata_set(self):
         with pytest.raises(AssertionError):
-            message.set_schemata(INVALID_PAYLOAD, self.context_schema)
+            set_schemata(INVALID_PAYLOAD, self.context_schema)
 
 
     def test_set_schemata_happy_path(self):
-        message.set_schemata(self.content_schema_set, self.context_schema)
-        content_schema_set, context_schema = message.get_schemata()
+        set_schemata(self.content_schema_set, self.context_schema)
+        content_schema_set, context_schema = get_schemata()
         assert content_schema_set == self.content_schema_set
         assert context_schema == self.context_schema
 
 
     def test_payload_from_json(self):
-        message.set_schemata(self.content_schema_set, self.context_schema)
-        payload = message.EventPayload.from_json(EVENT_PAYLOAD)
+        set_schemata(self.content_schema_set, self.context_schema)
+        payload = EventPayload.from_json(EVENT_PAYLOAD)
 
-        assert isinstance(payload.meta, message.Meta)
+        assert isinstance(payload.meta, Meta)
         assert isinstance(payload.content, dict)
         assert isinstance(payload.context, dict)
 
@@ -99,11 +100,11 @@ class PayloadTest(unittest.TestCase):
 
 
     def test_payload_serialization_roundtrip(self):
-        message.set_schemata(self.content_schema_set, self.context_schema)
-        payload = message.EventPayload.from_json(EVENT_PAYLOAD)
+        set_schemata(self.content_schema_set, self.context_schema)
+        payload = EventPayload.from_json(EVENT_PAYLOAD)
         raw_json = payload.to_json()
 
-        new_payload = message.EventPayload.from_json(raw_json)
+        new_payload = EventPayload.from_json(raw_json)
 
         assert payload.meta.timestamp == new_payload.meta.timestamp
         assert payload.meta.session_id == new_payload.meta.session_id
@@ -119,24 +120,23 @@ class EventTests(unittest.TestCase):
 
     def setUp(self):
         content_schema_set, context_schema  = common.schemata_fixtures()
-        message.set_schemata(content_schema_set, context_schema)
+        set_schemata(content_schema_set, context_schema)
 
     def tearDown(self):
-        message._CONTENT_SCHEMA_SET = None
-        message._CONTEXT_SCHEMA = None
+        event_module._CONTENT_SCHEMA_SET = None
+        event_module._CONTEXT_SCHEMA = None
 
     def test_ack_event(self):
         envelope = Bunch(delivery_tag=12345)
         mock_channel = MockChannel()
-        event = message.Event(
-            channel=mock_channel,
-            body=EVENT_PAYLOAD,
-            envelope=envelope,
-            name='get_booking')
+        event = Event(channel=mock_channel,
+                      body=EVENT_PAYLOAD,
+                      envelope=envelope,
+                      name='get_booking')
 
         payload = event.payload()
 
-        assert isinstance(payload, message.EventPayload)
+        assert isinstance(payload, EventPayload)
 
         helpers.aio_run(event.ack())
         assert len(mock_channel.acked) == 1
@@ -146,11 +146,10 @@ class EventTests(unittest.TestCase):
     def test_reject_event(self):
         envelope = Bunch(delivery_tag=12345)
         mock_channel = MockChannel()
-        event = message.Event(
-            channel=mock_channel,
-            body=EVENT_PAYLOAD,
-            envelope=envelope,
-            name='get_booking')
+        event = Event(channel=mock_channel,
+                      body=EVENT_PAYLOAD,
+                      envelope=envelope,
+                      name='get_booking')
 
         helpers.aio_run(event.reject())
         assert len(mock_channel.rejected) == 1
@@ -160,11 +159,10 @@ class EventTests(unittest.TestCase):
     def test_drop_event(self):
         envelope = Bunch(delivery_tag=12345)
         mock_channel = MockChannel()
-        event = message.Event(
-            channel=mock_channel,
-            body=EVENT_PAYLOAD,
-            envelope=envelope,
-            name='get_booking')
+        event = Event(channel=mock_channel,
+                      body=EVENT_PAYLOAD,
+                      envelope=envelope,
+                      name='get_booking')
 
         helpers.aio_run(event.drop())
         assert len(mock_channel.rejected) == 1
@@ -172,11 +170,10 @@ class EventTests(unittest.TestCase):
 
 
     def test_event_class_bad_body(self):
-        event = message.Event(
-            channel=helpers.AsyncMock(),
-            body=INVALID_PAYLOAD,
-            envelope=mock.MagicMock(),
-            name='get_booking')
+        event = Event(channel=helpers.AsyncMock(),
+                      body=INVALID_PAYLOAD,
+                      envelope=mock.MagicMock(),
+                      name='get_booking')
 
         with pytest.raises(pydantic.ValidationError):
             helpers.aio_run(event.payload())

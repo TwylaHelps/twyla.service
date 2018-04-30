@@ -10,7 +10,7 @@ from twyla.service.event_bus import EventBus
 import twyla.service.queues as queues
 import twyla.service.test.helpers as helpers
 import twyla.service.test.common as common
-from twyla.service.message import set_schemata, EventPayload
+from twyla.service.event import set_schemata, EventPayload
 from twyla.service.test.integration.common import RabbitRest
 
 
