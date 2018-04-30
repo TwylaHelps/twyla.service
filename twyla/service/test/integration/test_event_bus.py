@@ -85,8 +85,11 @@ class TestQueues(unittest.TestCase):
             await channel.basic_client_ack(delivery_tag=envelope.delivery_tag)
 
         async def doit():
+            # the first listen call is to create and bind the queue
             await event_bus.listen('a-domain.to-be-listened', consumer_callback)
             self.rabbit.publish_message('a-domain', 'to-be-listened', event_payload.to_json())
+            await event_bus.listen('a-domain.to-be-listened', consumer_callback)
+
 
         loop = asyncio.get_event_loop()
         loop.run_until_complete(doit())
