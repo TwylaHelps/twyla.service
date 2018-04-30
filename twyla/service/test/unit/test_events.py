@@ -2,7 +2,7 @@ import unittest
 import unittest.mock as mock
 
 from twyla.service.test import helpers
-from twyla.service import events
+from twyla.service import event_bus
 
 class QueueMock:
     def __init__(self):
@@ -18,17 +18,17 @@ class QueueMock:
 
 class EventsTests(unittest.TestCase):
 
-    @mock.patch('twyla.service.events.queues')
+    @mock.patch('twyla.service.event_bus.queues')
     def test_listen(self, mock_queues):
         qm = QueueMock()
         mock_queues.QueueManager.return_value = qm
 
-        event_bus = events.EventBus('TWYLA_', 'testing')
+        bus = event_bus.EventBus('TWYLA_', 'testing')
 
         async def callback(*args, **kwargs):
             pass
 
-        helpers.aio_run(event_bus.listen('a-domain.an-event', callback))
+        helpers.aio_run(bus.listen('a-domain.an-event', callback))
         assert qm.connected
         assert len(qm.listeners) == 1
         assert qm.listeners[0] == ('a-domain.an-event', callback)
