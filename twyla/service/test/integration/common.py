@@ -40,8 +40,12 @@ class RabbitRest:
     def get_messages(self, queue_name):
         url = urljoin(self.BASE, f'queues/%2f/{queue_name}/get')
         body = {'count': 10, "ackmode":"ack_requeue_false", 'encoding': 'auto'}
-        resp = requests.post(url, json=body, auth=self.RABBIT_AUTH)
-        return resp.json()
+        response = requests.post(url, json=body, auth=self.RABBIT_AUTH).json()
+        if 'error' in response:
+            # this happens with older versions of rabbitmq like on travis ci.
+            body = {'count': 10, "requeue": False, 'encoding': 'auto'}
+            response = requests.post(url, json=body, auth=self.RABBIT_AUTH).json()
+        return response
 
     def publish_message(self, exchange_name, routing_key, payload):
         url = urljoin(self.BASE, f'exchanges/%2f/{exchange_name}/publish')
