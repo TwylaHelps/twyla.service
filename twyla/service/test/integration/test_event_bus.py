@@ -90,6 +90,7 @@ class TestQueues(unittest.TestCase):
 
         loop = asyncio.get_event_loop()
         loop.run_until_complete(doit())
+        assert len(received) == 1
         payload = json.loads(received[0])
         assert payload['content']['name'] == 'test-name-content'
 
