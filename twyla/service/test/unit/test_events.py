@@ -23,7 +23,7 @@ class EventsTests(unittest.TestCase):
         qm = QueueMock()
         mock_queues.QueueManager.return_value = qm
 
-        event_bus = events.EventBus('TWYLA_', 'testing', ['a-domain.an-event'])
+        event_bus = events.EventBus('TWYLA_', 'testing')
 
         async def callback(*args, **kwargs):
             pass

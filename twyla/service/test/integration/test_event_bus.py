@@ -35,7 +35,7 @@ class TestQueues(unittest.TestCase):
 
     def test_emit(self):
         self.rabbit.create_queue("a-domain.an-event.testing", "a-domain", "an-event")
-        event_bus = EventBus('TWYLA_', 'testing', ['a-domain.an-event'])
+        event_bus = EventBus('TWYLA_', 'testing')
         event = EventPayload(
             event_name='a-domain.an-event',
             content={
@@ -78,7 +78,7 @@ class TestQueues(unittest.TestCase):
             }
         )
 
-        event_bus = EventBus('TWYLA_', 'testing', ['a-domain.to-be-listened'])
+        event_bus = EventBus('TWYLA_', 'testing')
         received = []
         async def consumer_callback(channel, body, envelope, properties):
             received.append(body)
@@ -112,7 +112,7 @@ class TestQueues(unittest.TestCase):
             await channel.basic_client_ack(delivery_tag=envelope.delivery_tag)
 
         async def listen():
-            event_bus = EventBus('TWYLA_', 'testing', ['a-domain.to-be-listened'])
+            event_bus = EventBus('TWYLA_', 'testing')
             await event_bus.listen('a-domain.to-be-listened', consumer_callback)
 
         async def stopper():
