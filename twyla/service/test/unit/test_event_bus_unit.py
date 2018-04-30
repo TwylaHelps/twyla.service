@@ -1,3 +1,4 @@
+import asyncio
 import unittest
 import unittest.mock as mock
 
@@ -17,6 +18,23 @@ class QueueMock:
 
 
 class EventsTests(unittest.TestCase):
+
+    def test_message_to_event_adapter(self):
+        passed_event = None
+        async def msg_callback(event):
+            nonlocal passed_event
+            passed_event = event
+        adapter = event_bus.MessageToEventAdapter(msg_callback)
+        channel = object()
+        envelope = object()
+        async def doit():
+            await adapter(channel, {}, envelope, None)
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(doit())
+        assert passed_event is not None
+        assert passed_event.channel is channel
+        assert passed_event.envelope is envelope
+
 
     @mock.patch('twyla.service.event_bus.queues')
     def test_listen(self, mock_queues):
