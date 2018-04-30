@@ -1,3 +1,4 @@
+import asyncio
 import os
 import unittest
 import unittest.mock as mock
@@ -43,6 +44,12 @@ class MockProtocol:
         self.close_calls += 1
 
 
+    async def wait_closed(self):
+        # This never happens, as the protocol is mocked and the closed flag is
+        # not set
+        await asyncio.sleep(100)
+
+
 class MockAioamqp:
     def __init__(self):
         self.connect_recorder = None
@@ -57,44 +64,27 @@ class MockAioamqp:
         return None, MockProtocol()
 
 
+
 class QueueManagerTests(unittest.TestCase):
+
     def setUp(self):
-        os.environ['TWYLA_RABBITMQ_HOST'] = 'localhost'
-        os.environ['TWYLA_RABBITMQ_PORT'] = '5672'
-        os.environ['TWYLA_RABBITMQ_USER'] = 'guest'
-        os.environ['TWYLA_RABBITMQ_PASS'] = 'guest'
-        os.environ['TWYLA_RABBITMQ_EXCHANGE'] = 'events_test'
-        os.environ['TWYLA_RABBITMQ_VHOST'] = '/'
-        os.environ['TWYLA_RABBITMQ_PREFIX'] = 'test-service'
+        self.patcher = mock.patch.dict(
+            os.environ,
+            {'TWYLA_AMQP_HOST': 'localhost',
+             'TWYLA_AMQP_PORT': '5672',
+             'TWYLA_AMQP_USER': 'guest',
+             'TWYLA_AMQP_PASS': 'guest',
+             'TWYLA_AMQP_VHOST': '/'})
+        self.patcher.start()
 
 
     def tearDown(self):
-        del os.environ['TWYLA_RABBITMQ_HOST']
-        del os.environ['TWYLA_RABBITMQ_PORT']
-        del os.environ['TWYLA_RABBITMQ_USER']
-        del os.environ['TWYLA_RABBITMQ_PASS']
-        del os.environ['TWYLA_RABBITMQ_EXCHANGE']
-        del os.environ['TWYLA_RABBITMQ_VHOST']
-        del os.environ['TWYLA_RABBITMQ_PREFIX']
-
-
-    def test_load_config(self):
-        config = queues.load_config()
-
-        assert config == {
-            'host': 'localhost',
-            'port': '5672',
-            'user': 'guest',
-            'pass': 'guest',
-            'exchange': 'events_test',
-            'vhost': '/',
-            'prefix': 'test-service'
-        }
+        self.patcher.stop()
 
 
     @mock.patch('twyla.service.queues.aioamqp', new_callable=MockAioamqp)
     def test_queue_manager_basic(self, mock_aioamqp):
-        qm = queues.QueueManager()
+        qm = queues.QueueManager('TWYLA_', 'generic')
         helpers.aio_run(qm.connect())
 
         # Check if the return value of the connect method sets the protocol
@@ -103,7 +93,8 @@ class QueueManagerTests(unittest.TestCase):
         assert isinstance(qm.channel, MockChannel)
 
         assert qm.protocol.channel_calls == 1
-        assert qm.channel.exchange_declare_calls == 1
+        # no exchanges or queues called yet
+        assert qm.channel.exchange_declare_calls == 0
         assert qm.channel.queue_declare_calls == 0
         assert qm.channel.queue_bind_calls == 0
 
