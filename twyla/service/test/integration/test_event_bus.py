@@ -103,9 +103,13 @@ class TestQueues(unittest.TestCase):
         qm = queues.QueueManager('TWYLA_', 'the-group')
         mock_queues.QueueManager.return_value = qm
 
-        async def consumer(event_name):
-            async for e in events.listen("a-domain.an-event"):
-                await e.ack()
+
+        async def consumer_callback(channel, body, envelope, properties):
+            await channel.basic_client_ack(delivery_tag=envelope.delivery_tag)
+
+        async def listen():
+            event_bus = EventBus('TWYLA_', 'testing', ['a-domain.to-be-listened'])
+            await event_bus.listen('a-domain.to-be-listened', consumer_callback)
 
         async def stopper():
             while qm.protocol is None:
@@ -113,13 +117,8 @@ class TestQueues(unittest.TestCase):
             await qm.protocol.close()
 
 
-        tasks = [
-            asyncio.ensure_future(consumer(self.event_name)),
-            asyncio.ensure_future(stopper()),
-        ]
+        tasks = [asyncio.ensure_future(listen()), asyncio.ensure_future(stopper())]
 
         loop = asyncio.get_event_loop()
         with pytest.raises(CancelledError):
-            loop.run_until_complete(
-                asyncio.wait(tasks)
-            )
+            loop.run_until_complete(asyncio.wait(tasks))
