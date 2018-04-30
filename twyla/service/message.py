@@ -23,8 +23,7 @@ class Event:
         event body happens. It returns an EventPayload object. The schema for
         deserialization and validation is loaded from a central schema service.
         """
-        payload = EventPayload.from_json(self.body)
-        return payload
+        return EventPayload.from_json(self.body)
 
 
     async def ack(self):
