@@ -31,4 +31,6 @@ class EventsTests(unittest.TestCase):
         helpers.aio_run(bus.listen('a-domain.an-event', callback))
         assert qm.connected
         assert len(qm.listeners) == 1
-        assert qm.listeners[0] == ('a-domain.an-event', callback)
+        assert qm.listeners[0][0] == 'a-domain.an-event'
+        event_callback = qm.listeners[0][1]
+        assert isinstance(event_callback, event_bus.MessageToEventAdapter)

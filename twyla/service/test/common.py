@@ -14,6 +14,7 @@ _content_schema = json.dumps({
 
 _content_schema_set = {
     'a-domain.an-event': _content_schema,
+    'other-domain.to-be-listened': _content_schema,
     'another-event': 'another-event-content-schema'
 }
 
