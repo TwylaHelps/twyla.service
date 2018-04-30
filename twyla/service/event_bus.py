@@ -2,6 +2,7 @@ from aioamqp.protocol import OPEN
 
 from twyla.service import queues
 
+
 class EventBus:
 
     def __init__(self, config_prefix: str, group: str):

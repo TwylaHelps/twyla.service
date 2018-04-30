@@ -6,7 +6,7 @@ import pytest
 import unittest
 import unittest.mock as mock
 
-from twyla.service.events import EventBus
+from twyla.service.event_bus import EventBus
 import twyla.service.queues as queues
 import twyla.service.test.helpers as helpers
 import twyla.service.test.common as common
@@ -100,7 +100,7 @@ class TestQueues(unittest.TestCase):
 
 
 
-    @mock.patch('twyla.service.events.queues')
+    @mock.patch('twyla.service.event_bus.queues')
     def test_cancel_on_disconnect(self, mock_queues):
         # 'mock' queue manager with an instance that we control to test the
         # disconnect callback more easily.
