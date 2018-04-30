@@ -14,8 +14,7 @@ logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 def split_event_name(event_name: str):
     assert "." in event_name, "Event names should be of format domain.event_name"
-    splat = event_name.split('.', 1)
-    return splat[0], splat[1]
+    return event_name.split('.', 1)
 
 
 
