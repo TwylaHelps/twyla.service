@@ -7,7 +7,12 @@ import pydantic
 import pytest
 
 from twyla.service import event as event_module
-from twyla.service.event import Event, EventPayload, Meta, set_schemata, get_schemata
+from twyla.service.event import (Event,
+                                 EventPayload,
+                                 Meta,
+                                 set_schemata,
+                                 get_schemata,
+                                 split_event_name)
 import twyla.service.test.helpers as helpers
 import twyla.service.test.common as common
 
@@ -58,6 +63,14 @@ class PayloadTest(unittest.TestCase):
     def tearDown(self):
         event_module._CONTENT_SCHEMA_SET = None
         event_module._CONTEXT_SCHEMA = None
+
+    def test_split_event_name(self):
+        domain, event_name = split_event_name('the-domain.the-event-name')
+        assert domain == 'the-domain'
+        assert event_name == 'the-event-name'
+        with pytest.raises(AssertionError):
+            split_event_name('not a proper name')
+
 
 
     def test_validation_with_no_schemata_set(self):
@@ -131,12 +144,11 @@ class EventTests(unittest.TestCase):
         mock_channel = MockChannel()
         event = Event(channel=mock_channel,
                       body=EVENT_PAYLOAD,
-                      envelope=envelope,
-                      name='get_booking')
+                      envelope=envelope)
 
-        payload = event.payload()
+        event.validate()
 
-        assert isinstance(payload, EventPayload)
+        assert isinstance(event.payload, EventPayload)
 
         helpers.aio_run(event.ack())
         assert len(mock_channel.acked) == 1
@@ -148,8 +160,7 @@ class EventTests(unittest.TestCase):
         mock_channel = MockChannel()
         event = Event(channel=mock_channel,
                       body=EVENT_PAYLOAD,
-                      envelope=envelope,
-                      name='get_booking')
+                      envelope=envelope)
 
         helpers.aio_run(event.reject())
         assert len(mock_channel.rejected) == 1
@@ -161,8 +172,7 @@ class EventTests(unittest.TestCase):
         mock_channel = MockChannel()
         event = Event(channel=mock_channel,
                       body=EVENT_PAYLOAD,
-                      envelope=envelope,
-                      name='get_booking')
+                      envelope=envelope)
 
         helpers.aio_run(event.drop())
         assert len(mock_channel.rejected) == 1
@@ -172,8 +182,7 @@ class EventTests(unittest.TestCase):
     def test_event_class_bad_body(self):
         event = Event(channel=helpers.AsyncMock(),
                       body=INVALID_PAYLOAD,
-                      envelope=mock.MagicMock(),
-                      name='get_booking')
+                      envelope=mock.MagicMock())
 
         with pytest.raises(pydantic.ValidationError):
-            helpers.aio_run(event.payload())
+            helpers.aio_run(event.validate())

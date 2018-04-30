@@ -9,21 +9,27 @@ from pydantic import BaseModel, ValidationError
 
 import twyla.service.jsontool as jsontool
 
+def split_event_name(event_name: str):
+    assert "." in event_name, "Event names should be of format domain.event_name"
+    return event_name.split('.', 1)
+
 
 class Event:
-    def __init__(self, channel, body, envelope, name):
+
+    def __init__(self, channel, body, envelope):
         self.channel = channel
         self.body = body
         self.envelope = envelope
-        self.name = name
+        self.payload = None
+        self.event_name = None
+        self.domain = None
+        self.event_type = None
 
-    def payload(self):
-        """
-        The payload method is where the deserialization and validation of the
-        event body happens. It returns an EventPayload object. The schema for
-        deserialization and validation is loaded from a central schema service.
-        """
-        return EventPayload.from_json(self.body)
+
+    def validate(self):
+        self.payload = EventPayload.from_json(self.body)
+        self.event_name = self.payload.event_name
+        self.domain, self.event_type = split_event_name(self.event_name)
 
 
     async def ack(self):

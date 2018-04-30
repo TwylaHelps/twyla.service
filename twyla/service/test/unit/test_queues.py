@@ -82,13 +82,6 @@ class QueueManagerTests(unittest.TestCase):
     def tearDown(self):
         self.patcher.stop()
 
-    def test_split_event_name(self):
-        domain, event_name = queues.split_event_name('the-domain.the-event-name')
-        assert domain == 'the-domain'
-        assert event_name == 'the-event-name'
-        with pytest.raises(AssertionError):
-            queues.split_event_name('not a proper name')
-
 
     @mock.patch('twyla.service.queues.aioamqp', new_callable=MockAioamqp)
     def test_queue_manager_basic(self, mock_aioamqp):

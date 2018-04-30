@@ -10,7 +10,7 @@ from twyla.service.event_bus import EventBus
 import twyla.service.queues as queues
 import twyla.service.test.helpers as helpers
 import twyla.service.test.common as common
-from twyla.service.event import set_schemata, EventPayload
+from twyla.service.event import set_schemata, EventPayload, Event
 from twyla.service.test.integration.common import RabbitRest
 
 
@@ -64,7 +64,7 @@ class TestQueues(unittest.TestCase):
 
     def test_listen(self):
         event_payload = EventPayload(
-            event_name='to-be-listened',
+            event_name='other-domain.to-be-listened',
             content={
                 'name': 'test-name-content',
                 'text': 'test-text-content',
@@ -80,22 +80,24 @@ class TestQueues(unittest.TestCase):
 
         event_bus = EventBus('TWYLA_', 'testing')
         received = []
-        async def consumer_callback(channel, body, envelope, properties):
-            received.append(body)
-            await channel.basic_client_ack(delivery_tag=envelope.delivery_tag)
+        async def event_callback(event):
+            received.append(event)
+            await event.ack()
 
         async def doit():
             # the first listen call is to create and bind the queue
-            await event_bus.listen('a-domain.to-be-listened', consumer_callback)
-            self.rabbit.publish_message('a-domain', 'to-be-listened', event_payload.to_json())
-            await event_bus.listen('a-domain.to-be-listened', consumer_callback)
+            await event_bus.listen('other-domain.to-be-listened', event_callback)
+            self.rabbit.publish_message('other-domain', 'to-be-listened', event_payload.to_json())
+            await event_bus.listen('other-domain.to-be-listened', event_callback)
 
 
         loop = asyncio.get_event_loop()
         loop.run_until_complete(doit())
         assert len(received) == 1
-        payload = json.loads(received[0])
-        assert payload['content']['name'] == 'test-name-content'
+        event = received[0]
+        assert isinstance(event, Event)
+        event.validate()
+        assert event.event_name == 'other-domain.to-be-listened'
 
 
 

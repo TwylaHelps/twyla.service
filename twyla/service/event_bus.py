@@ -1,6 +1,15 @@
 from aioamqp.protocol import OPEN
 
 from twyla.service import queues
+from twyla.service.event import Event
+
+class MessageToEventAdapter:
+    def __init__(self, callback):
+        self.callback = callback
+
+    async def __call__(self, channel, body, envelope, properties):
+        event = Event(channel, body, envelope)
+        await self.callback(event)
 
 
 class EventBus:
@@ -13,7 +22,7 @@ class EventBus:
 
     async def listen(self, event_name, callback):
         await self.queue_manager.connect()
-        await self.queue_manager.listen(event_name, callback)
+        await self.queue_manager.listen(event_name, MessageToEventAdapter(callback))
 
 
     async def emit(self, event):

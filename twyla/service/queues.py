@@ -7,15 +7,10 @@ import aioamqp
 from aioamqp.protocol import OPEN
 
 import twyla.service.configuration as config
-from twyla.service.event import Event
+from twyla.service.event import Event, split_event_name
 
 # TODO: add actual logging
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
-
-def split_event_name(event_name: str):
-    assert "." in event_name, "Event names should be of format domain.event_name"
-    return event_name.split('.', 1)
-
 
 
 class QueueManager:
