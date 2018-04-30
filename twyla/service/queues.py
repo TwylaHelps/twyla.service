@@ -7,7 +7,7 @@ import aioamqp
 from aioamqp.protocol import OPEN
 
 import twyla.service.configuration as config
-from twyla.service.message import Event
+from twyla.service.event import Event
 
 # TODO: add actual logging
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
