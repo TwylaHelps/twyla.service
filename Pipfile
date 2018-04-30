@@ -9,7 +9,6 @@ aioamqp = "*"
 jsonschema = "*"
 pydantic = "*"
 pyyaml = "*"
-requests = "*"
 
 [dev-packages]
 pytest = "*"
@@ -17,6 +16,7 @@ isort = "*"
 pylint = "*"
 "flake8" = "*"
 pytest-cov = "*"
+requests = "*"
 
 [requires]
 python_version = "3.6"
