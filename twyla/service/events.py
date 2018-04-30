@@ -4,11 +4,10 @@ from twyla.service import queues
 
 class EventBus:
 
-    def __init__(self, config_prefix, group, emits):
+    def __init__(self, config_prefix: str, group: str):
         self.config_prefix = config_prefix
         self.group = group
         self.queue_manager = queues.QueueManager(config_prefix, group)
-        self.emits = emits
 
 
     async def listen(self, event_name, callback):
