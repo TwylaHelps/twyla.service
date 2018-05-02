@@ -48,8 +48,10 @@ class EventsTests(unittest.TestCase):
 
         async def callback(*args, **kwargs):
             pass
+        bus.listen('a-domain.an-event', callback)
 
-        helpers.aio_run(bus.listen('a-domain.an-event', 'testing', callback))
+        bus.listen('a-domain.an-event', 'testing', callback)
+        helpers.aio_run(bus.start())
         assert qm.connected
         assert len(qm.listeners) == 1
         assert qm.listeners[0][0] == 'a-domain.an-event'
