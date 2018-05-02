@@ -83,12 +83,12 @@ class TestQueues(unittest.TestCase):
         async def event_callback(event):
             received.append(event)
             await event.ack()
+        event_bus.listen('other-domain.to-be-listened', 'testing', event_callback)
 
         async def doit():
-            # the first listen call is to create and bind the queue
-            await event_bus.listen('other-domain.to-be-listened', 'testing', event_callback)
+            await event_bus.start()
             self.rabbit.publish_message('other-domain', 'to-be-listened', event_payload.to_json())
-            await event_bus.listen('other-domain.to-be-listened', 'testing', event_callback)
+            await event_bus.start()
 
 
         loop = asyncio.get_event_loop()
@@ -98,8 +98,6 @@ class TestQueues(unittest.TestCase):
         assert isinstance(event, Event)
         event.validate()
         assert event.event_name == 'other-domain.to-be-listened'
-
-
 
 
     @mock.patch('twyla.service.event_bus.queues')
@@ -115,7 +113,8 @@ class TestQueues(unittest.TestCase):
 
         async def listen():
             event_bus = EventBus('TWYLA_')
-            await event_bus.listen('a-domain.to-be-listened', 'testing', consumer_callback)
+            event_bus.listen('a-domain.to-be-listened', 'testing', consumer_callback)
+            await event_bus.start()
 
         async def stopper():
             while qm.protocol is None:
