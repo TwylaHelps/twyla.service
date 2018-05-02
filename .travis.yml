@@ -10,7 +10,7 @@ install:
 
 script:
   # let rabbit start up properly
-  - pytest --cov twyla.service --cov-report term-missing
+  - pytest --tb=native --cov twyla.service --cov-report term-missing
 after_script:
   - pip install codecov
   - codecov
