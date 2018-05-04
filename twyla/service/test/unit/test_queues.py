@@ -85,7 +85,7 @@ class QueueManagerTests(unittest.TestCase):
 
     @mock.patch('twyla.service.queues.aioamqp', new_callable=MockAioamqp)
     def test_queue_manager_basic(self, mock_aioamqp):
-        qm = queues.QueueManager('TWYLA_', 'generic')
+        qm = queues.QueueManager('TWYLA_')
         helpers.aio_run(qm.connect())
 
         # Check if the return value of the connect method sets the protocol

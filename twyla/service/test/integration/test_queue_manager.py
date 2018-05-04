@@ -32,28 +32,27 @@ class TestQueues(unittest.TestCase):
         self.patcher.stop()
 
     def test_load_configuration_with_prefix(self):
-        qm = queues.QueueManager('TWYLA_', 'the-group')
+        qm = queues.QueueManager('TWYLA_')
         assert qm.config['amqp_host'] == 'localhost'
         assert qm.config['amqp_port'] == '5672'
         assert qm.config['amqp_user'] == 'guest'
         assert qm.config['amqp_pass'] == 'guest'
         assert qm.config['amqp_vhost'] == '/'
-        assert qm.event_group == 'the-group'
 
 
     def test_raise_exception_on_invalid_event_name(self):
-        qm = queues.QueueManager('TWYLA_', 'the-group')
+        qm = queues.QueueManager('TWYLA_')
         loop = asyncio.get_event_loop()
         with pytest.raises(AssertionError):
-            loop.run_until_complete(qm.listen('an-event', noop))
+            loop.run_until_complete(qm.listen('an-event', 'the-group', noop))
 
 
     def test_declare_queues_and_exchanges_for_listener(self):
-        qm = queues.QueueManager('TWYLA_', 'the-group')
+        qm = queues.QueueManager('TWYLA_')
         loop = asyncio.get_event_loop()
         async def doit():
             await qm.connect()
-            await qm.listen('a-domain.an-event', noop)
+            await qm.listen('a-domain.an-event', 'the-group', noop)
         loop.run_until_complete(doit())
         rabbit_queues = self.rabbit.queues()
         assert 'a-domain.an-event.the-group' in [x['name'] for x in rabbit_queues]
@@ -65,7 +64,7 @@ class TestQueues(unittest.TestCase):
 
 
     def test_declare_exchange(self):
-        qm = queues.QueueManager('TWYLA_', 'the-group')
+        qm = queues.QueueManager('TWYLA_')
         loop = asyncio.get_event_loop()
         async def doit():
             await qm.connect()

@@ -35,7 +35,7 @@ class TestQueues(unittest.TestCase):
 
     def test_emit(self):
         self.rabbit.create_queue("a-domain.an-event.testing", "a-domain", "an-event")
-        event_bus = EventBus('TWYLA_', 'testing')
+        event_bus = EventBus('TWYLA_')
         event = EventPayload(
             event_name='a-domain.an-event',
             content={
@@ -78,7 +78,7 @@ class TestQueues(unittest.TestCase):
             }
         )
 
-        event_bus = EventBus('TWYLA_', 'testing')
+        event_bus = EventBus('TWYLA_')
         received = []
         async def event_callback(event):
             received.append(event)
@@ -86,9 +86,9 @@ class TestQueues(unittest.TestCase):
 
         async def doit():
             # the first listen call is to create and bind the queue
-            await event_bus.listen('other-domain.to-be-listened', event_callback)
+            await event_bus.listen('other-domain.to-be-listened', 'testing', event_callback)
             self.rabbit.publish_message('other-domain', 'to-be-listened', event_payload.to_json())
-            await event_bus.listen('other-domain.to-be-listened', event_callback)
+            await event_bus.listen('other-domain.to-be-listened', 'testing', event_callback)
 
 
         loop = asyncio.get_event_loop()
@@ -106,7 +106,7 @@ class TestQueues(unittest.TestCase):
     def test_cancel_on_disconnect(self, mock_queues):
         # 'mock' queue manager with an instance that we control to test the
         # disconnect callback more easily.
-        qm = queues.QueueManager('TWYLA_', 'the-group')
+        qm = queues.QueueManager('TWYLA_')
         mock_queues.QueueManager.return_value = qm
 
 
@@ -114,8 +114,8 @@ class TestQueues(unittest.TestCase):
             await channel.basic_client_ack(delivery_tag=envelope.delivery_tag)
 
         async def listen():
-            event_bus = EventBus('TWYLA_', 'testing')
-            await event_bus.listen('a-domain.to-be-listened', consumer_callback)
+            event_bus = EventBus('TWYLA_')
+            await event_bus.listen('a-domain.to-be-listened', 'testing', consumer_callback)
 
         async def stopper():
             while qm.protocol is None:
