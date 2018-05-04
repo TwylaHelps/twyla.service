@@ -1,4 +1,0 @@
-aioamqp==0.10.0
-jsonschema==2.6.0
-pydantic==0.9
-pyyaml==3.12

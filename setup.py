@@ -1,6 +1,6 @@
 from setuptools import setup
 
-dependencies = []
+dependencies = ["aioamqp", "jsonschema", "pydantic", "pyyaml"]
 
 setup(
     name="twyla.service",
