@@ -152,7 +152,7 @@ from twyla.service.event_bus import EventBus
 
 event_bus = EventBus('EVENT_BUS_')
 
-payload = message.EventPayload(
+payload = event.EventPayload(
     event_name='api.user_input',
     content={'emission': 'Hello, there',
              'user_id': 'abc123'},
@@ -163,7 +163,7 @@ payload = message.EventPayload(
 )
 
 loop = asyncio.get_event_loop()
-loop.run_until_complete(EventBus.emit('test-event', payload))
+loop.run_until_complete(event_bus.emit(payload))
 ```
 
 ### Listening to Events
