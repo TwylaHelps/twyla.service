@@ -51,7 +51,7 @@ class EventBus:
             await self.start()
         except: # pylint: disable-msg=bare-except
             logger.exception("Error running main event loop")
-            asyncio.ensure_future(self.queue_manager.stop())
+            aio_loop.stop()
 
 
     def main(self):
@@ -63,7 +63,7 @@ class EventBus:
             atexit.register(aio_loop.close)
             aio_loop.run_forever()
         except: #pylint: disable-msg=bare-except
-            logger.exception("Oops, error running Xpi")
+            logger.exception("Error running twyla.service Event Bus")
         finally:
             if aio_loop.is_running():
                 aio_loop.stop()
