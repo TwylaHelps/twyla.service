@@ -64,141 +64,125 @@ RPC as well.
 
 ## Event Bus
 
-Events are used for asynchronous communication between services.
+Events are used for asynchronous communication between services. They are
+emitted by services to either signal a state change (e.g. change of user data,
+start of a proxy session to a 3rd party bot or service) or to demand the
+execution of a command (changing persistent state, generating a report etc.). An
+event in twyla.service is embodied by the `twyla.service.event.Event` class,
+which has a `payload` field that encapsulates the data, and various methods to
+acknowledge, reject or drop the event. The `payload` field is of the type
+`twyla.service.event.EventPayload`. The `EventPayload` class has the following
+fields:
 
-Events are emitted by services to either signal a state change (e.g. change of
-user data, start of a proxy session to a 3rd party bot or service) or request
-information from other services within the platform (e.g. query information
-about a booking).
+- `event_name: str`: A name that consists of a domain and an event type,
+  separeted by a dot.
 
-The latter is similar to RPC but decouples the request from awaiting and
-processing the response. The main disadvantage of this method of requesting
-information compared to RPC is the lack of a guaranteed response (RPC requests
-will always have a success, failure, or timeout response).
+- `content: dict`: The event contents which will be serialized to JSON and
+  transmitted to listeners.
+
+- `context: dict`: Contextual data that is necessary for the proper processing
+  of the content.
+
+- `meta: dict`: Meta-information for correlation and debugging.
+
+The `meta` field is generated automatically, and contains the following:
+
+- `version: int`: The version of the message protocol
+
+- `timestamp`: The time the event was generated
+
+- `session_id`: A random UUID for tracing
 
 
-### Creating Events
+### Validating Events
 
-Events have to implement a specific contract that defines the structure and
-value types within the structure of the event. Pydantic is used to parse and
-validate events.
+Both listeners and producers have to set validators for the events processed by
+twyla.service. For this purpose, `twyla.service.message.get_schemata` can be
+used to set schemata in the [JSONSchema](json-schema.org) format, as in the
+following sample:
 
-For validation, a content schema set and context schema have to be defined using `twyla.service.message.get_schemata`. These schemata have to conform to [JSONSchema](json-schema.org).
+```Python
+from twyla.service import event
 
-    import twyla.service.message as message
-
-    an_event_content_schema =
-    '''
-        {
-            "$schema": "http://json-schema.org/draft-06/schema#",
-            "title": "Content",
-            "description": "Some content",
-            "type": "object",
-            "properties": {
-                "emission": {
-                    "description": "Some emission",
-                    "type": "string"
-                }
-            }
-        }
-    '''
-
-    content_schema_set = {
-        'an-event': an_event_content_schema
+content_schema = {
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "title": "Content",
+    "description": "User input",
+    "type": "object",
+    "properties": {
+        "emission": {"description": "Some emission",
+                     "type": "string"},
+        "user_id": {"description": "ID of the user",
+                    "type": "string"}
     }
+}
+
+content_schema_set = {
+    'api.user_input': 'content_schema'
+}
 
 
-    context_schema =
-    '''
-        {
-            "$schema": "http://json-schema.org/draft-06/schema#",
-            "title": "Context",
-            "description": "Some context",
-            "type": "object",
-            "properties": {
-                "tenant": {
-                    "description": "Some tenant",
-                    "type": "string"
-                },
-                "channel-id": {
-                    "description": "Some channel ID",
-                    "type": "integer"
-                }
-            }
-        }
-    '''
+context_schema = {
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "title": "Context",
+    "description": "Some context",
+    "type": "object",
+    "properties": {
+        "tenant": {"description": "The tenant",
+                   "type": "string"},
+        "channel-id": {"description": "ID of communication channel",
+                       "type": "integer"}
+    }
+}
 
-    message.set_schemata(content_schema_set, context_schema)
+event.set_schemata(content_schema_set, context_schema)
+```
 
-The event can either implement one of the predefined contracts in this library
-or an automatically discovered contract that gets exposed by the services that
-listen to a particular event.
+twyla.service will then validate both incoming and outgoing events from a
+service during operation.
 
-    import twyla.service.events as events
-    import twyla.service.message as message
-    import twyla.service.test.helpers as helpers
+### Raising Events
 
-    payload = message.EventPayload(
-        event_name='integration',
-        content={'emission': 'Hello, there'},
-        context={
-            'tenant': 'test-tenant',
-            'channel-id': 1
-        }
-    )
+Picking off from the event validation sample above, here is an example of how to
+raise an event:
 
-    helpers.aio_run(events.emit('test-event', payload))
+```Python
+import asyncio
+from twyla.service.event_bus import EventBus
 
-The capability to discover event schemata decouples the provider of the schema
-from the service using it (e.g. environment, configuration files, or other
-services).
+event_bus = EventBus('EVENT_BUS_')
 
-Events get augmented with additional information when emitted. Every event gets
-an ID that is used for correlation in tracing by passing it on in events that
-are related down the line. If an event is the start of the chain then a new ID
-is generated. Additional metadata includes the timestamp and version).
-
-Events can also be emitted as dicts. Those will be automatically serialized but
-will get dropped by consumers that fail to validate them.
-
-    import twyla.service.events as events
-    import twyla.service.message as message
-    import twyla.service.test.helpers as helpers
-
-    payload = {
-        'message_type': 'integration',
+payload = message.EventPayload(
+    event_name='api.user_input',
+    content={'emission': 'Hello, there',
+             'user_id': 'abc123'},
+    context={
         'tenant': 'test-tenant',
-        'bot_slug': 'test-slug',
-        'channel': 'test-channel',
-        'channel_user_id': 'test-user-id',
-        'content': {}
+        'channel-id': 678
     }
+)
 
-    helpers.aio_run(events.emit('test-event', payload))
-
+loop = asyncio.get_event_loop()
+loop.run_until_complete(EventBus.emit('test-event', payload))
+```
 
 ### Listening to Events
 
 Events get provided by an async generator and all business logic can be fully
 controlled within the scope of the services.
 
-    import twyla.service.events as events
-    import twyla.service.test.helpers as helpers
+```Python
+from pprint import pprint
+from twyla.service import event
+from twyla.service.event_bus import EventBus
 
-    async def consumer(event_name):
-        async for event in events.listen(event_name):
-            print(event.to_json())
-            # Do more things with the event
-            await event.ack()
+async def callback(event):
+    pprint(event.to_json())
 
-    helpers.aio_run(consumer('test-event'))
-
-> NOTE: Providing events from a generator lets the developer take care of side
-> effects more easily than in a callback based system. It is generally more easy
-> to reason about the listener that way as all logic and resources can be kept
-> in the service scope (no hidden magic). It is very easy to mock the listener
-> entirely with `helpers.AsyncMock`s as well.
-
+event_bus = EventBus('EVENT_BUS_')
+event_bus.listen('api.user_input', 'consumer', callback)
+event_bus.main()
+```
 
 ### Managing Changes
 
