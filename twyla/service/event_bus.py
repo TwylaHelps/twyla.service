@@ -1,9 +1,13 @@
+import asyncio
+import atexit
 import signal
+import logging
 from aioamqp.protocol import OPEN
 
 from twyla.service import queues
 from twyla.service.event import Event
 
+logger = logging.getLogger(__name__)
 
 class MessageToEventAdapter:
     def __init__(self, callback):
@@ -53,13 +57,13 @@ class EventBus:
     def main(self):
         aio_loop = asyncio.get_event_loop()
         try:
-            logger.info("Starting main event loop")
+            logger.info("Starting twyla.service main event loop")
             aio_loop.create_task(self.main_task(aio_loop))
             # See http://bugs.python.org/issue23548
-            atexit.register(asyncio.get_event_loop().close)
-            main_loop.run_forever()
+            atexit.register(aio_loop.close)
+            aio_loop.run_forever()
         except: #pylint: disable-msg=bare-except
             logger.exception("Oops, error running Xpi")
         finally:
-            if main_loop.is_running():
-                main_loop.stop()
+            if aio_loop.is_running():
+                aio_loop.stop()
