@@ -5,6 +5,7 @@ import os
 import pytest
 import unittest
 import unittest.mock as mock
+import signal
 
 from twyla.service.event_bus import EventBus
 import twyla.service.queues as queues
@@ -13,6 +14,8 @@ import twyla.service.test.common as common
 from twyla.service.event import set_schemata, EventPayload, Event
 from twyla.service.test.integration.common import RabbitRest
 
+async def noop(*args, **kwargs):
+    pass
 
 class TestQueues(unittest.TestCase):
 
@@ -107,13 +110,9 @@ class TestQueues(unittest.TestCase):
         qm = queues.QueueManager('TWYLA_')
         mock_queues.QueueManager.return_value = qm
 
-
-        async def consumer_callback(channel, body, envelope, properties):
-            await channel.basic_client_ack(delivery_tag=envelope.delivery_tag)
-
         async def listen():
             event_bus = EventBus('TWYLA_')
-            event_bus.listen('a-domain.to-be-listened', 'testing', consumer_callback)
+            event_bus.listen('a-domain.to-be-listened', 'testing', noop)
             await event_bus.start()
 
         async def stopper():
@@ -127,3 +126,37 @@ class TestQueues(unittest.TestCase):
         loop = asyncio.get_event_loop()
         with pytest.raises(CancelledError):
             loop.run_until_complete(asyncio.wait(tasks))
+
+
+    def test_main_task(self):
+        event_payload = EventPayload(
+            event_name='other-domain.to-be-listened',
+            content={
+                'name': 'test-name-content',
+                'text': 'test-text-content',
+            },
+            context={
+                'channel': 'test-channel',
+                'channel_user': {
+                    'name': 'test-name',
+                    'id': 24
+                }
+            }
+        )
+        event_bus = EventBus('TWYLA_')
+        received = []
+        async def callback(event):
+            received.append(event)
+            await event.ack()
+
+        event_bus.listen('third-domain.to-be-listened', 'testing', callback)
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(event_bus.start())
+        self.rabbit.publish_message('third-domain', 'to-be-listened', event_payload.to_json())
+
+        loop.run_until_complete(event_bus.main_task(loop))
+        # remove_signal_handler returns False if there was no handler for the
+        # given signal
+        assert loop.remove_signal_handler(signal.SIGINT)
+        assert loop.remove_signal_handler(signal.SIGTERM)
+        assert len(received) == 1

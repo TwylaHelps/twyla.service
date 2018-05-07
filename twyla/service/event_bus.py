@@ -1,3 +1,4 @@
+import signal
 from aioamqp.protocol import OPEN
 
 from twyla.service import queues
