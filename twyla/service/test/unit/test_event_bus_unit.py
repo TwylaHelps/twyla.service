@@ -48,7 +48,6 @@ class EventsTests(unittest.TestCase):
 
         async def callback(*args, **kwargs):
             pass
-        bus.listen('a-domain.an-event', callback)
 
         bus.listen('a-domain.an-event', 'testing', callback)
         helpers.aio_run(bus.start())

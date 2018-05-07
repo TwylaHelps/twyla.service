@@ -17,19 +17,18 @@ class EventBus:
 
     def __init__(self, config_prefix: str):
         self.config_prefix = config_prefix
-        self.group = group
         self.event_listeners = {}
         self.queue_manager = queues.QueueManager(config_prefix)
 
 
     def listen(self, event_name: str, event_group: str, callback):
-        self.event_listeners[event_name] = callback
+        self.event_listeners[event_name] = (callback, event_group)
 
 
     async def start(self):
         await self.queue_manager.connect()
-        for event_name, callback in self.event_listeners.items():
-            await self.queue_manager.listen(event_name, MessageToEventAdapter(callback))
+        for event_name, (callback, group) in self.event_listeners.items():
+            await self.queue_manager.listen(event_name, group, MessageToEventAdapter(callback))
 
 
     async def emit(self, event):
