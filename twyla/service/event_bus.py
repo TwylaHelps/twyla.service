@@ -24,6 +24,7 @@ class EventBus:
     def __init__(self, config_prefix: str):
         self.config_prefix = config_prefix
         self.event_listeners = {}
+        self.run_stop_on_queue_close = True
         self.queue_manager = queues.QueueManager(config_prefix)
 
 
@@ -56,7 +57,8 @@ class EventBus:
 
     async def stop_on_queue_disconnect(self):
         await asyncio.wait_for(self.queue_manager.closed_event.wait(), None)
-        await self.stop_main()
+        if self.run_stop_on_queue_close:
+            await self.stop_main()
 
 
     def signal_handler(self):
@@ -64,6 +66,9 @@ class EventBus:
 
 
     async def stop_main(self):
+        # The next two lines get rid of the stop_on_queue_disconnect task
+        self.run_stop_on_queue_close = False
+        self.queue_manager.closed_event.set()
         await self.queue_manager.stop()
         for task in asyncio.Task.all_tasks():
             # Cancel all pending tasks (this should be only the current method
