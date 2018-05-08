@@ -86,21 +86,20 @@ class EventBus:
             # and by that passing handling of connection problems upwards in
             # the call stack.
             task.cancel()
-        aio_loop = asyncio.get_event_loop()
-        if aio_loop.is_running():
-            aio_loop.stop()
+        if self.aio_loop.is_running():
+            self.aio_loop.stop()
 
 
     def main(self):
-        aio_loop = asyncio.get_event_loop()
+        self.aio_loop = asyncio.get_event_loop()
         try:
             logger.info("Starting twyla.service main event loop")
-            aio_loop.create_task(self.main_task(aio_loop))
+            self.aio_loop.create_task(self.main_task(self.aio_loop))
             # See http://bugs.python.org/issue23548
-            atexit.register(aio_loop.close)
-            aio_loop.run_forever()
+            atexit.register(self.aio_loop.close)
+            self.aio_loop.run_forever()
         except: #pylint: disable-msg=bare-except
             logger.exception("Error running twyla.service Event Bus")
         finally:
-            if aio_loop.is_running():
-                aio_loop.stop()
+            if self.aio_loop.is_running():
+                self.aio_loop.stop()
