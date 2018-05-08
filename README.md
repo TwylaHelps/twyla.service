@@ -13,7 +13,8 @@ work within the Twyla platform.
   - [Using RPC Requests](#using-rpc-requests)
   - [Managing Changes](#managing-changes)
 - [Event Bus](#event-bus)
-  - [Creating Events](#creating-events)
+  - [Validating Events](#creating-events)
+  - [Raising Events](#creating-events)
   - [Listening to Events](#listening-to-events)
   - [Managing Changes](#managing-changes-1)
 - [Service Contracts](#service-contracts)
@@ -97,7 +98,7 @@ The `meta` field is generated automatically, and contains the following:
 ### Validating Events
 
 Both listeners and producers have to set validators for the events processed by
-twyla.service. For this purpose, `twyla.service.message.get_schemata` can be
+twyla.service. For this purpose, `twyla.service.message.set_schemata` can be
 used to set schemata in the [JSONSchema](json-schema.org) format, as in the
 following sample:
 
