@@ -1,3 +1,4 @@
+import sys
 import asyncio
 import atexit
 import signal
@@ -43,14 +44,50 @@ class EventBus:
 
 
     async def main_task(self, aio_loop):
-        for signame in ('SIGINT', 'SIGTERM'):
-            aio_loop.add_signal_handler(
-                getattr(signal, signame),
-                lambda: asyncio.ensure_future(self.queue_manager.stop()))
+        aio_loop.add_signal_handler(signal.SIGINT, self.signal_handler)
+        aio_loop.add_signal_handler(signal.SIGTERM, self.signal_handler)
+        self.queue_disconnect_future = asyncio.ensure_future(self.stop_on_queue_disconnect())
         try:
             await self.start()
         except: # pylint: disable-msg=bare-except
             logger.exception("Error running main event loop")
+            aio_loop.stop()
+
+
+    async def stop_on_queue_disconnect(self):
+        await asyncio.wait_for(self.queue_manager.closed_event.wait(), None)
+        await self.stop_main()
+
+
+    def signal_handler(self):
+        asyncio.ensure_future(self.stop_main())
+
+
+    async def stop_main(self):
+        await self.queue_manager.stop()
+        for task in asyncio.Task.all_tasks():
+            # Cancel all pending tasks (this should be only the current method
+            # and the event listener in most cases). Make sure to not cancel
+            # this method.
+            my_class_name = self.__class__.__name__
+            my_method_name = sys._getframe().f_code.co_name
+            my_name = f'{my_class_name}.{my_method_name}'
+            task_name = task._coro.__qualname__
+
+            # This checks if the task name is QueueManager.cancel_on_disconnect
+            # in a refactoring friendly way.
+            if task_name == my_name:
+                continue
+
+            # await self.protocol.wait_closed() will block this coroutine until
+            # the connection to rabbit closes for any reason. Then the rest of
+            # the function is executed cleaning the up all the things and
+            # raising the CancelledError to <loop>.run_until_complete() runs
+            # and by that passing handling of connection problems upwards in
+            # the call stack.
+            task.cancel()
+        aio_loop = asyncio.get_event_loop()
+        if aio_loop.is_running():
             aio_loop.stop()
 
 
