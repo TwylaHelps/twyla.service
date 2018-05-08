@@ -118,7 +118,7 @@ content_schema = {
 }
 
 content_schema_set = {
-    'api.user_input': 'content_schema'
+    'api.user_input': content_schema
 }
 
 
@@ -168,8 +168,10 @@ loop.run_until_complete(event_bus.emit(payload))
 
 ### Listening to Events
 
-Events get provided by an async generator and all business logic can be fully
-controlled within the scope of the services.
+Event listening works through a callback system, where handlers can be
+registered per event name and group. The events are then distributed to all
+groups, but uniquely within a group. The callback that handles an event must be
+an asyncio coroutine.
 
 ```Python
 from pprint import pprint
@@ -177,7 +179,9 @@ from twyla.service import event
 from twyla.service.event_bus import EventBus
 
 async def callback(event):
-    pprint(event.to_json())
+    event.validate()
+    pprint(event.payload.content)
+    await event.ack()
 
 event_bus = EventBus('EVENT_BUS_')
 event_bus.listen('api.user_input', 'consumer', callback)
