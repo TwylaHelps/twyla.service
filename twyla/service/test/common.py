@@ -1,7 +1,7 @@
 import json
 
 
-_content_schema = json.dumps({
+_content_schema = {
     '$schema': 'http://json-schema.org/draft-06/schema#',
     'title': 'Request',
     'description': 'A test request',
@@ -10,7 +10,7 @@ _content_schema = json.dumps({
         'name': {'type': 'string'},
         'text': {'type': 'string'}
     }
-})
+}
 
 _content_schema_set = {
     'a-domain.an-event': _content_schema,
@@ -18,7 +18,7 @@ _content_schema_set = {
     'another-event': 'another-event-content-schema'
 }
 
-_context_schema = json.dumps({
+_context_schema = {
     '$schema': 'http://json-schema.org/draft-06/schema#',
     'title': 'ShopContext',
     'description': 'A test context',
@@ -33,7 +33,7 @@ _context_schema = json.dumps({
             }
         }
     }
-})
+}
 
 
 def schemata_fixtures():

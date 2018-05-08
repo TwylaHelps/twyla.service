@@ -81,6 +81,7 @@ class EventPayload(BaseModel):
 
     def validate(self):
         content_schema_set, context_schema = get_schemata()
+        content_schema = content_schema_set[self.event_name]
 
         if any([content_schema_set is None, context_schema is None]):
             raise Exception(
@@ -89,10 +90,6 @@ class EventPayload(BaseModel):
                 set_schema(content_schema_set, context_schema)
                 '''
             )
-
-        content_schema = json.loads(content_schema_set[self.event_name])
-        context_schema = json.loads(context_schema)
-
         jsonschema.validate(self.content, content_schema)
         jsonschema.validate(self.context, context_schema)
         return self
