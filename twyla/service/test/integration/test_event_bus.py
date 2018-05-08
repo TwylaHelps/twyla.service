@@ -124,8 +124,9 @@ class TestQueues(unittest.TestCase):
         tasks = [asyncio.ensure_future(listen()), asyncio.ensure_future(stopper())]
 
         loop = asyncio.get_event_loop()
-        with pytest.raises(CancelledError):
-            loop.run_until_complete(asyncio.wait(tasks))
+        loop.run_until_complete(asyncio.wait(tasks))
+        open_tasks = [t for t in asyncio.Task.all_tasks() if not t.done()]
+        assert len(open_tasks) == 0
 
 
     def test_main_task(self):
