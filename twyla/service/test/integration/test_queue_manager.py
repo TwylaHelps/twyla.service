@@ -13,42 +13,28 @@ from twyla.service.test.integration.common import RabbitRest
 def noop(*args, **kwargs):
     pass
 
+QUEUE_CONFIG = {'amqp_host': 'localhost',
+                'amqp_port': '5672',
+                'amqp_user': 'guest',
+                'amqp_pass': 'guest',
+                'amqp_vhost': '/'}
+
 
 class TestQueues(unittest.TestCase):
 
     def setUp(self):
-        self.patcher = mock.patch.dict(
-            os.environ,
-            {'TWYLA_AMQP_HOST': 'localhost',
-             'TWYLA_AMQP_PORT': '5672',
-             'TWYLA_AMQP_USER': 'guest',
-             'TWYLA_AMQP_PASS': 'guest',
-             'TWYLA_AMQP_VHOST': '/'})
-        self.patcher.start()
         self.rabbit = RabbitRest()
 
 
-    def tearDown(self):
-        self.patcher.stop()
-
-    def test_load_configuration_with_prefix(self):
-        qm = queues.QueueManager('TWYLA_')
-        assert qm.config['amqp_host'] == 'localhost'
-        assert qm.config['amqp_port'] == '5672'
-        assert qm.config['amqp_user'] == 'guest'
-        assert qm.config['amqp_pass'] == 'guest'
-        assert qm.config['amqp_vhost'] == '/'
-
-
     def test_raise_exception_on_invalid_event_name(self):
-        qm = queues.QueueManager('TWYLA_')
+        qm = queues.QueueManager(QUEUE_CONFIG)
         loop = asyncio.get_event_loop()
         with pytest.raises(AssertionError):
             loop.run_until_complete(qm.listen('an-event', 'the-group', noop))
 
 
     def test_declare_queues_and_exchanges_for_listener(self):
-        qm = queues.QueueManager('TWYLA_')
+        qm = queues.QueueManager(QUEUE_CONFIG)
         loop = asyncio.get_event_loop()
         async def doit():
             await qm.connect()
@@ -64,7 +50,7 @@ class TestQueues(unittest.TestCase):
 
 
     def test_declare_exchange(self):
-        qm = queues.QueueManager('TWYLA_')
+        qm = queues.QueueManager(QUEUE_CONFIG)
         loop = asyncio.get_event_loop()
         async def doit():
             await qm.connect()

@@ -21,14 +21,11 @@ class TestQueues(unittest.TestCase):
 
     def setUp(self):
         set_schemata(*common.schemata_fixtures())
-        self.patcher = mock.patch.dict(
-            os.environ,
-            {'TWYLA_AMQP_HOST': 'localhost',
-             'TWYLA_AMQP_PORT': '5672',
-             'TWYLA_AMQP_USER': 'guest',
-             'TWYLA_AMQP_PASS': 'guest',
-             'TWYLA_AMQP_VHOST': '/'})
-        self.patcher.start()
+        self.queue_config = {'TWYLA_AMQP_HOST': 'localhost',
+                             'TWYLA_AMQP_PORT': '5672',
+                             'TWYLA_AMQP_USER': 'guest',
+                             'TWYLA_AMQP_PASS': 'guest',
+                             'TWYLA_AMQP_VHOST': '/'}
         self.rabbit = RabbitRest()
 
 

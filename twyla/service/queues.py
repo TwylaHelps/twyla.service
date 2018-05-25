@@ -5,14 +5,13 @@ import logging
 import aioamqp
 from aioamqp.protocol import OPEN
 
-import twyla.service.configuration as config
 from twyla.service.event import Event, split_event_name
 
 
 class QueueManager:
 
-    def __init__(self, configuration_prefix):
-        self.config = config.from_env(configuration_prefix)
+    def __init__(self, queue_configuration):
+        self.queue_configuration = queue_configuration
         self.protocol = None
         self.channel = None
         self.closed_event = asyncio.Event()
@@ -22,11 +21,11 @@ class QueueManager:
         if self.protocol is not None and self.channel is not None:
             return
         _, protocol = await aioamqp.connect(
-            self.config['amqp_host'],
-            self.config['amqp_port'],
-            self.config['amqp_user'],
-            self.config['amqp_pass'],
-            self.config['amqp_vhost'],
+            self.queue_configuration['amqp_host'],
+            self.queue_configuration['amqp_port'],
+            self.queue_configuration['amqp_user'],
+            self.queue_configuration['amqp_pass'],
+            self.queue_configuration['amqp_vhost'],
             loop=self.loop
         )
         self.protocol = protocol
