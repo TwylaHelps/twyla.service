@@ -36,3 +36,9 @@ _context_schema = {
 
 def schemata_fixtures():
     return _content_schema_set, _context_schema
+
+QUEUE_CONFIG = {'amqp_host': 'localhost',
+                'amqp_port': '5672',
+                'amqp_user': 'guest',
+                'amqp_pass': 'guest',
+                'amqp_vhost': '/'}

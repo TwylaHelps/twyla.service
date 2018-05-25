@@ -21,11 +21,10 @@ class MessageToEventAdapter:
 
 class EventBus:
 
-    def __init__(self, config_prefix: str):
-        self.config_prefix = config_prefix
+    def __init__(self, queue_config):
         self.event_listeners = {}
         self.run_stop_on_queue_close = True
-        self.queue_manager = queues.QueueManager(config_prefix)
+        self.queue_manager = queues.QueueManager(queue_config)
 
 
     def listen(self, event_name: str, event_group: str, callback):

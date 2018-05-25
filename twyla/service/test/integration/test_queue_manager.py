@@ -8,16 +8,11 @@ import unittest.mock as mock
 import twyla.service.queues as queues
 
 from twyla.service.test.integration.common import RabbitRest
+from twyla.service.test.common import QUEUE_CONFIG
 
 
 def noop(*args, **kwargs):
     pass
-
-QUEUE_CONFIG = {'amqp_host': 'localhost',
-                'amqp_port': '5672',
-                'amqp_user': 'guest',
-                'amqp_pass': 'guest',
-                'amqp_vhost': '/'}
 
 
 class TestQueues(unittest.TestCase):

@@ -13,29 +13,23 @@ import twyla.service.test.helpers as helpers
 import twyla.service.test.common as common
 from twyla.service.event import set_schemata, EventPayload, Event
 from twyla.service.test.integration.common import RabbitRest
+from twyla.service.test.common import QUEUE_CONFIG
 
 async def noop(*args, **kwargs):
     pass
+
+
 
 class TestQueues(unittest.TestCase):
 
     def setUp(self):
         set_schemata(*common.schemata_fixtures())
-        self.queue_config = {'TWYLA_AMQP_HOST': 'localhost',
-                             'TWYLA_AMQP_PORT': '5672',
-                             'TWYLA_AMQP_USER': 'guest',
-                             'TWYLA_AMQP_PASS': 'guest',
-                             'TWYLA_AMQP_VHOST': '/'}
         self.rabbit = RabbitRest()
-
-
-    def tearDown(self):
-        self.patcher.stop()
 
 
     def test_emit(self):
         self.rabbit.create_queue("a-domain.an-event.testing", "a-domain", "an-event")
-        event_bus = EventBus('TWYLA_')
+        event_bus = EventBus(QUEUE_CONFIG)
         event = EventPayload(
             event_name='a-domain.an-event',
             content={
@@ -78,7 +72,7 @@ class TestQueues(unittest.TestCase):
             }
         )
 
-        event_bus = EventBus('TWYLA_')
+        event_bus = EventBus(QUEUE_CONFIG)
         received = []
         async def event_callback(event):
             received.append(event)
@@ -104,11 +98,11 @@ class TestQueues(unittest.TestCase):
     def test_cancel_on_disconnect(self, mock_queues):
         # 'mock' queue manager with an instance that we control to test the
         # disconnect callback more easily.
-        qm = queues.QueueManager('TWYLA_')
+        qm = queues.QueueManager(QUEUE_CONFIG)
         mock_queues.QueueManager.return_value = qm
 
         async def listen():
-            event_bus = EventBus('TWYLA_')
+            event_bus = EventBus(QUEUE_CONFIG)
             event_bus.listen('a-domain.to-be-listened', 'testing', noop)
             await event_bus.start()
 
@@ -141,7 +135,7 @@ class TestQueues(unittest.TestCase):
                 }
             }
         )
-        event_bus = EventBus('TWYLA_')
+        event_bus = EventBus(QUEUE_CONFIG)
         received = []
         async def callback(event):
             received.append(event)

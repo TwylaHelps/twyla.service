@@ -8,6 +8,7 @@ from aioamqp.protocol import OPEN
 
 import twyla.service.queues as queues
 import twyla.service.test.helpers as helpers
+from twyla.service.test.common import QUEUE_CONFIG
 
 
 class MockChannel:
@@ -68,24 +69,10 @@ class MockAioamqp:
 
 class QueueManagerTests(unittest.TestCase):
 
-    def setUp(self):
-        self.patcher = mock.patch.dict(
-            os.environ,
-            {'TWYLA_AMQP_HOST': 'localhost',
-             'TWYLA_AMQP_PORT': '5672',
-             'TWYLA_AMQP_USER': 'guest',
-             'TWYLA_AMQP_PASS': 'guest',
-             'TWYLA_AMQP_VHOST': '/'})
-        self.patcher.start()
-
-
-    def tearDown(self):
-        self.patcher.stop()
-
 
     @mock.patch('twyla.service.queues.aioamqp', new_callable=MockAioamqp)
     def test_queue_manager_basic(self, mock_aioamqp):
-        qm = queues.QueueManager('TWYLA_')
+        qm = queues.QueueManager(QUEUE_CONFIG)
         helpers.aio_run(qm.connect())
 
         # Check if the return value of the connect method sets the protocol
